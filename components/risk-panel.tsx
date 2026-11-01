@@ -47,7 +47,7 @@ export function RiskPanel({ risk }: { risk: RiskResult }) {
                       </div>
                       <div className="relative mt-0.5 h-2 rounded-sm bg-white/[0.06]" role="img" aria-label={`${f.label}: risk ${f.risk} of 100, peer average ${f.peerRisk}, adds ${f.contribution} points`} title={`Risk ${f.risk}/100 · peer average ${f.peerRisk} · adds ${f.contribution} points (weight ${Math.round(f.weight * 100)}%)`}>
                         <div className="h-full rounded-r bg-indigo-400" style={{ width: `${f.risk}%` }} />
-                        <div className="absolute -bottom-0.5 -top-0.5 w-0.5 bg-slate-200" style={{ left: `${f.peerRisk}%` }} />
+                        <div className="absolute -bottom-0.5 -top-0.5 w-0.5 bg-slate-200 print:bg-black" style={{ left: `${f.peerRisk}%` }} />
                       </div>
                     </li>
                   ))}

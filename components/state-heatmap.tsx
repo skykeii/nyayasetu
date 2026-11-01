@@ -53,11 +53,14 @@ export function StateHeatmap({ rows, metric, selected, onSelect, className }: { 
   const [hover, setHover] = React.useState<{ row: AreaRow | null; state: string; x: number; y: number } | null>(null);
   const byState = new Map(rows.map((r) => [r.key, r]));
   const values = rows.filter((r) => r.total > 0).map((r) => r[metric]);
-  const min = values.length ? Math.min(...values) : 0;
-  const max = values.length ? Math.max(...values) : 1;
+  const sorted = [...values].sort((a, b) => a - b);
+  const min = sorted.length ? sorted[0] : 0;
+  // cap at the 90th percentile so one small outlier does not wash out every other state
+  const max = sorted.length ? sorted[Math.floor((sorted.length - 1) * 0.9)] : 1;
+  const capped = sorted.length > 0 && sorted[sorted.length - 1] > max;
   const def = METRICS.find((m) => m.key === metric)!;
   const shade = (v: number) => {
-    const t = max === min ? 0.6 : (v - min) / (max - min);
+    const t = max === min ? 0.6 : Math.min(1, (v - min) / (max - min));
     const hue = HUES[metric];
     return { t, fill: `rgb(${LOW.map((l, i) => Math.round(l + (hue[i] - l) * t)).join(",")})` };
   };
@@ -127,6 +130,7 @@ export function StateHeatmap({ rows, metric, selected, onSelect, className }: { 
         <span className="h-2 w-28 rounded-sm" style={{ background: `linear-gradient(90deg, rgb(${LOW.join(",")}), rgb(${HUES[metric].join(",")}))` }} />
         <span className="num">
           {max}
+          {capped ? "+" : ""}
           {def.unit}
         </span>
         <span className="text-slate-500">{def.hint}. {def.higherIsBetter ? "Brighter is better." : "Brighter is worse."} Outlined tiles have no institutions in this demo.</span>

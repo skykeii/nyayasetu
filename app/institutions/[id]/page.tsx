@@ -8,6 +8,7 @@ import { BureauChip, Confidence, CountUp, ErrorNote, SlaBadge, StatusBadge } fro
 import { BarsChart } from "@/components/charts";
 import { OverlapBridge } from "@/components/overlap-bridge";
 import { CaseDrawer, Fact } from "@/components/case-drawer";
+import { OverlapGraph } from "@/components/overlap-graph";
 import { RiskPanel } from "@/components/risk-panel";
 import type { RiskResult } from "@/lib/risk";
 import type { CaseView } from "@/lib/server";
@@ -52,12 +53,17 @@ export default function InstitutionProfile({ params }: { params: { id: string } 
   return (
     <div className="mx-auto max-w-[1480px] space-y-5">
       <div className="flex items-center justify-between">
-        <Link href="/institutions" className="inline-flex items-center gap-1.5 text-[13px] text-slate-400 hover:text-white">
+        <Link href="/institutions" className="no-print inline-flex items-center gap-1.5 text-[13px] text-slate-400 hover:text-white">
           <ArrowLeft className="h-4 w-4" /> Institutions
         </Link>
         <Button variant="secondary" size="sm" onClick={() => window.print()} className="no-print">
-          <Printer className="h-4 w-4" /> Print profile
+          <Printer className="h-4 w-4" /> Print report
         </Button>
+      </div>
+
+      <div className="hidden print:block">
+        <div className="text-[13px] font-semibold">NyayaSetu institution report. Synthetic demo data.</div>
+        <div className="text-[12px]">Printed {fmtDateTime(new Date().toISOString())}. Covers the cases this role can see. Machine scores are advisory; final decisions rest with the competent authority.</div>
       </div>
 
       <Card className="p-5">
@@ -116,6 +122,9 @@ export default function InstitutionProfile({ params }: { params: { id: string } 
         <Card>
           <CardHeader title="Overlapping cases on this institution" sub="Complaints about the same issue sitting with more than one unit" />
           <div className="space-y-3 px-5 pb-5">
+            <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
+              <OverlapGraph clusters={data.clusters} cases={caseById} onOpen={setOpen} />
+            </div>
             {data.clusters.map((cl) => (
               <div key={cl.id} className={cn("rounded-xl border p-3.5", cl.status === "Open" ? "border-violet-400/30 bg-violet-500/[0.05]" : "border-white/[0.07]")}>
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">

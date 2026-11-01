@@ -99,6 +99,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     display: none !important;
   }
   main * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
     color: #111 !important;
     text-shadow: none !important;
     box-shadow: none !important;
@@ -113,6 +115,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     background: white !important;
     border-color: #bbb !important;
   }
+  main [class*="line-clamp"],
+  main .truncate {
+    overflow: visible !important;
+    white-space: normal !important;
+    display: block !important;
+    -webkit-line-clamp: unset !important;
+  }
+  main [class*="bg-white/"] {
+    background: transparent !important;
+  }
   main .scroll-thin {
     max-height: none !important;
     overflow: visible !important;
@@ -120,8 +132,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   main table {
     min-width: 0 !important;
   }
-  main .glass,
-  main tr {
+  main tr,
+  main li {
     break-inside: avoid;
   }
   /* chart axis text and grid lines are SVG, so they need fill and stroke */

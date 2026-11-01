@@ -7,6 +7,7 @@ import { Bell, Building2, ClipboardList, FileBarChart2, GitMerge, GraduationCap,
 import { RoleProvider, useApi, useRole, type Toast } from "./role-provider";
 import { Button, Select, cn } from "./ui";
 import { OverlapPulse } from "./bits";
+import { CommandPalette } from "./command-palette";
 import { ROLES, ROLE_KEYS } from "@/lib/roles";
 import type { Region, RoleKey } from "@/lib/types";
 import type { Alert } from "@/lib/server";
@@ -122,6 +123,7 @@ function OfficerShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <Toaster items={toasts} dismiss={dismiss} />
+      <Palette />
     </RoleProvider>
   );
 }
@@ -321,6 +323,11 @@ function Bell2() {
   );
 }
 
+function Palette() {
+  const { role } = useRole();
+  return <CommandPalette pages={NAV.filter((n) => ROLES[role].nav.includes(n.href)).map((n) => ({ href: n.href, label: n.label }))} />;
+}
+
 function Topbar() {
   const router = useRouter();
   const path = usePathname();
@@ -360,7 +367,7 @@ function Topbar() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search case ID, Permanent ID, institution, reference"
+          placeholder="Search cases, or Ctrl+K for everything"
           aria-label="Search cases"
           className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.04] pl-9 pr-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-saffron/50 focus:outline-none"
         />
