@@ -4,6 +4,7 @@ import { BUREAUS, REGIONS } from "./types";
 import { ROLES, ROLE_KEYS, type Viewer } from "./roles";
 import { detectBursts, detectOverlaps, type OverlapCluster } from "./overlap";
 import { DAY } from "./util";
+import { DEMO_COLLEGE_INDEX, urgencyOf } from "./intake";
 
 export function viewerFrom(req: Request, db: Db): Viewer {
   const h = req.headers;
@@ -11,6 +12,10 @@ export function viewerFrom(req: Request, db: Db): Viewer {
   const role = (h.get("x-role") ?? sp.get("_role")) as RoleKey | null;
   // middleware.ts answers 401 before a route runs; this keeps a missing role from ever widening access
   if (!role || !ROLE_KEYS.includes(role)) throw new Error("viewerFrom called without a valid role");
+  if (role === "college") {
+    const inst = db.institutions.find((i) => i.id === (h.get("x-institution") ?? sp.get("_institution"))) ?? db.institutions[DEMO_COLLEGE_INDEX];
+    return { role, region: inst.region, officerId: `COL-${inst.id}`, institutionId: inst.id };
+  }
   const regionRaw = (h.get("x-region") ?? sp.get("_region")) as Region | null;
   const region: Region = regionRaw && REGIONS.includes(regionRaw) ? regionRaw : "Southern";
   const def = ROLES[role];
@@ -38,6 +43,7 @@ export function viewerUnit(db: Db, v: Viewer): BureauCode | "RO" | "CA" {
 }
 
 export function officerName(db: Db, v: Viewer) {
+  if (v.role === "college") return db.signals.find((x) => x.institutionId === v.institutionId)?.nodalOfficer ?? "College Nodal Officer";
   return db.officers.find((o) => o.id === v.officerId)?.name ?? "Officer";
 }
 
@@ -112,7 +118,7 @@ export type CaseView = ReturnType<typeof decorate>;
 // ---------------- alerts ----------------
 export interface Alert {
   id: string;
-  type: "overlap" | "duplicate" | "sla_breach" | "sla_due" | "no_action" | "escalation" | "transfer" | "burst";
+  type: "overlap" | "duplicate" | "sla_breach" | "sla_due" | "no_action" | "escalation" | "transfer" | "burst" | "student";
   severity: "critical" | "high" | "medium" | "info";
   title: string;
   message: string;
@@ -123,7 +129,31 @@ export interface Alert {
   read: boolean;
 }
 
+function studentAlerts(db: Db, v: Viewer): Alert[] {
+  const reads = new Set(db.alertReads[v.role] ?? []);
+  const def = ROLES[v.role];
+  const instName = (id: string) => db.institutions.find((i) => i.id === id)?.name ?? id;
+  const regionIds = v.role === "ro" ? new Set(db.institutions.filter((i) => i.region === v.region).map((i) => i.id)) : null;
+  const out: Alert[] = [];
+  for (const s of db.studentComplaints) {
+    if (v.role === "college") {
+      const last = s.reminders.at(-1);
+      if (s.institutionId !== v.institutionId || s.status !== "With College" || !last) continue;
+      const u = urgencyOf({ severity: s.severity, createdAt: s.createdAt, dueAt: s.dueAt, similar: 0 });
+      const id = `col:${s.id}:${s.reminders.length}`;
+      out.push({ id, type: "student", severity: s.escalationLevel > 0 ? "critical" : u.label === "Critical" ? "high" : "medium", title: s.escalationLevel > 0 ? "Overdue: escalated to the Principal" : `Reminder: ${s.subject}`, message: `${s.id} · ${s.pseudonym} · ${last.message}`, caseIds: [], institutionId: s.institutionId, at: last.at, href: `/college?open=${s.id}`, read: reads.has(id) });
+    } else if (s.status === "Escalated to AICTE") {
+      const inScope = regionIds ? regionIds.has(s.institutionId) : def.bureaus === "all" || def.bureaus.includes(s.routedBureau);
+      if (!inScope) continue;
+      const id = `stu:${s.id}`;
+      out.push({ id, type: "student", severity: s.reopened ? "high" : "medium", title: s.reopened ? "Student marked Not done: reopened to AICTE" : "Student complaint overdue at college: escalated to AICTE", message: `${s.id} · ${s.pseudonym} · ${s.category} · ${instName(s.institutionId)}`, caseIds: s.caseId ? [s.caseId] : [], institutionId: s.institutionId, at: s.actions.at(-1)?.at ?? s.createdAt, href: `/grievances?open=${s.id}`, read: reads.has(id) });
+    }
+  }
+  return out;
+}
+
 export function buildAlerts(db: Db, v: Viewer): Alert[] {
+  if (v.role === "college") return studentAlerts(db, v).sort((a, b) => Number(a.read) - Number(b.read) || b.at.localeCompare(a.at));
   const vis = visibleIds(db, v);
   const { clusters } = detectOverlaps(db);
   const instName = (id: string) => db.institutions.find((i) => i.id === id)?.name ?? id;
@@ -183,6 +213,7 @@ export function buildAlerts(db: Db, v: Viewer): Alert[] {
       read: reads.has(id),
     });
   }
+  out.push(...studentAlerts(db, v));
   const rank = { critical: 0, high: 1, medium: 2, info: 3 };
   out.sort((a, b) => Number(a.read) - Number(b.read) || rank[a.severity] - rank[b.severity] || b.at.localeCompare(a.at));
   return out;

@@ -1,16 +1,17 @@
 "use client";
 import * as React from "react";
 import type { BureauCode, Category, Officer, Region, RoleKey, Settings, Status } from "@/lib/types";
-import { ROLES, type RoleDef } from "@/lib/roles";
+import { ROLE_KEYS, type RoleDef } from "@/lib/roles";
 
 export interface Meta {
-  viewer: { role: RoleDef; region: Region; officerId: string; officerName: string; designation?: string };
+  viewer: { role: RoleDef; region: Region; officerId: string; officerName: string; designation?: string; institutionId?: string };
   officers: Officer[];
   bureaus: { code: BureauCode; name: string; short: string }[];
   regions: Region[];
   categories: Category[];
   statuses: Status[];
   settings: Settings;
+  colleges: { id: string; name: string }[];
   seededAt: string;
   llm: boolean;
 }
@@ -19,7 +20,8 @@ interface Ctx {
   role: RoleKey;
   region: Region;
   officerId: string | null;
-  setRole: (r: RoleKey, region?: Region, officerId?: string | null) => void;
+  institutionId: string | null;
+  setRole: (r: RoleKey, region?: Region, officerId?: string | null, institutionId?: string | null) => void;
   meta: Meta | null;
   api: <T = unknown>(path: string, init?: RequestInit) => Promise<T>;
   headers: Record<string, string>;
@@ -44,7 +46,7 @@ export const useRole = () => {
 const KEY = "nyayasetu.session";
 
 export function RoleProvider({ children, onToast }: { children: React.ReactNode; onToast: (t: Toast) => void }) {
-  const [state, setState] = React.useState<{ role: RoleKey; region: Region; officerId: string | null }>({ role: "ca", region: "Southern", officerId: null });
+  const [state, setState] = React.useState<{ role: RoleKey; region: Region; officerId: string | null; institutionId: string | null }>({ role: "ca", region: "Southern", officerId: null, institutionId: null });
   const [meta, setMeta] = React.useState<Meta | null>(null);
   const [tick, setTick] = React.useState(0);
   const [ready, setReady] = React.useState(false);
@@ -54,7 +56,7 @@ export function RoleProvider({ children, onToast }: { children: React.ReactNode;
       const raw = localStorage.getItem(KEY);
       if (raw) {
         const s = JSON.parse(raw);
-        if (s.role in ROLES) setState(s);
+        if (ROLE_KEYS.includes(s.role)) setState({ institutionId: null, ...s });
       }
     } catch {
       /* ignore */
@@ -65,6 +67,7 @@ export function RoleProvider({ children, onToast }: { children: React.ReactNode;
   const headers = React.useMemo(() => {
     const h: Record<string, string> = { "x-role": state.role, "x-region": state.region };
     if (state.officerId) h["x-officer"] = state.officerId;
+    if (state.institutionId) h["x-institution"] = state.institutionId;
     return h;
   }, [state]);
 
@@ -83,9 +86,9 @@ export function RoleProvider({ children, onToast }: { children: React.ReactNode;
     api<Meta>("/api/meta").then(setMeta).catch(() => undefined);
   }, [api, ready, tick]);
 
-  const setRole = React.useCallback((role: RoleKey, region?: Region, officerId?: string | null) => {
+  const setRole = React.useCallback((role: RoleKey, region?: Region, officerId?: string | null, institutionId?: string | null) => {
     setState((s) => {
-      const next = { role, region: region ?? s.region, officerId: officerId === undefined ? (role === s.role ? s.officerId : null) : officerId };
+      const next = { role, region: region ?? s.region, officerId: officerId === undefined ? (role === s.role ? s.officerId : null) : officerId, institutionId: institutionId === undefined ? s.institutionId : institutionId };
       try {
         localStorage.setItem(KEY, JSON.stringify(next));
       } catch {
@@ -93,6 +96,7 @@ export function RoleProvider({ children, onToast }: { children: React.ReactNode;
       }
       const h: Record<string, string> = { "x-role": next.role, "x-region": next.region, "Content-Type": "application/json" };
       if (next.officerId) h["x-officer"] = next.officerId;
+      if (next.institutionId) h["x-institution"] = next.institutionId;
       fetch("/api/audit", { method: "POST", headers: h, body: "{}" }).catch(() => undefined);
       return next;
     });

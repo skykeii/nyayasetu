@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
-import { AlarmClock, ArrowRightLeft, BellRing, CheckCheck, Clock, GitMerge, Copy, Siren, TriangleAlert } from "lucide-react";
+import { AlarmClock, ArrowRightLeft, BellRing, CheckCheck, Clock, GitMerge, Copy, GraduationCap, Siren, TriangleAlert } from "lucide-react";
 import { useApi, useRole } from "@/components/role-provider";
 import { Button, Card, Skeleton, Tabs, cn } from "@/components/ui";
 import { ErrorNote } from "@/components/bits";
@@ -18,6 +18,7 @@ const TYPES: { key: Alert["type"] | "all"; label: string }[] = [
   { key: "escalation", label: "Escalations" },
   { key: "transfer", label: "Transfers" },
   { key: "burst", label: "Complaint bursts" },
+  { key: "student", label: "Student complaints" },
 ];
 
 const ICON: Record<Alert["type"], React.ComponentType<{ className?: string }>> = {
@@ -29,6 +30,7 @@ const ICON: Record<Alert["type"], React.ComponentType<{ className?: string }>> =
   escalation: TriangleAlert,
   transfer: ArrowRightLeft,
   burst: BellRing,
+  student: GraduationCap,
 };
 
 const TONE = (a: Alert) =>

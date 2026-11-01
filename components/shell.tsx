@@ -3,7 +3,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, Building2, ClipboardList, FileBarChart2, GitMerge, LayoutDashboard, Plus, Search, Settings2, ShieldCheck, UserCircle2, X, ChevronDown } from "lucide-react";
+import { Bell, Building2, ClipboardList, FileBarChart2, GitMerge, GraduationCap, LayoutDashboard, Mic, Plus, School, Search, Settings2, ShieldCheck, UserCircle2, X, ChevronDown } from "lucide-react";
 import { RoleProvider, useApi, useRole, type Toast } from "./role-provider";
 import { Button, Select, cn } from "./ui";
 import { OverlapPulse } from "./bits";
@@ -14,9 +14,12 @@ import { fmtDateTime } from "@/lib/util";
 
 const NAV = [
   { href: "/", label: "Command center", icon: LayoutDashboard },
+  { href: "/college", label: "College desk", icon: School },
   { href: "/cases", label: "Cases", icon: ClipboardList },
+  { href: "/intake", label: "Voice and text intake", icon: Mic },
   { href: "/institutions", label: "Institutions", icon: Building2 },
   { href: "/overlaps", label: "Overlaps", icon: GitMerge },
+  { href: "/grievances", label: "Student grievances", icon: GraduationCap },
   { href: "/alerts", label: "Alerts", icon: Bell },
   { href: "/reports", label: "Reports", icon: FileBarChart2 },
   { href: "/audit", label: "Audit trail", icon: ShieldCheck },
@@ -84,6 +87,13 @@ function Toaster({ items, dismiss }: { items: (Toast & { id: number })[]; dismis
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const path = usePathname();
+  // students sign in separately and never see the officer shell or send role headers
+  if (path === "/student" || path.startsWith("/student/")) return <>{children}</>;
+  return <OfficerShell>{children}</OfficerShell>;
+}
+
+function OfficerShell({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<(Toast & { id: number })[]>([]);
   const dismiss = React.useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
   const push = React.useCallback(
@@ -122,7 +132,7 @@ function Sidebar() {
   const allowed = ROLES[role].nav;
   return (
     <aside className="no-print sticky top-0 z-40 hidden h-screen w-[68px] shrink-0 flex-col border-r border-white/[0.06] bg-[#0A0F1E]/70 backdrop-blur-xl md:flex lg:w-60">
-      <Link href="/" className="flex items-center gap-3 px-4 pb-5 pt-5">
+      <Link href={allowed[0]} className="flex items-center gap-3 px-4 pb-5 pt-5">
         <BridgeMark className="h-9 w-9 shrink-0" />
         <div className="hidden min-w-0 lg:block">
           <div className="text-[17px] font-bold tracking-tight text-white">NyayaSetu</div>
@@ -164,7 +174,7 @@ function Sidebar() {
 }
 
 function RoleSwitcher() {
-  const { role, region, officerId, setRole, meta } = useRole();
+  const { role, region, officerId, institutionId, setRole, meta } = useRole();
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
@@ -210,6 +220,18 @@ function RoleSwitcher() {
                 <Select value={region} onChange={(e) => setRole("ro", e.target.value as Region, null)}>
                   {(meta?.regions ?? []).map((r) => (
                     <option key={r}>{r}</option>
+                  ))}
+                </Select>
+              </div>
+            )}
+            {role === "college" && (
+              <div className="mt-3">
+                <div className="mb-1 text-[12px] text-slate-400">College</div>
+                <Select value={institutionId ?? meta?.viewer.institutionId ?? ""} onChange={(e) => setRole("college", undefined, null, e.target.value)}>
+                  {(meta?.colleges ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
                   ))}
                 </Select>
               </div>
@@ -307,7 +329,7 @@ function Topbar() {
   const allowed = ROLES[role].nav;
   React.useEffect(() => {
     const base = "/" + (path.split("/")[1] ?? "");
-    if (!allowed.includes(base === "/" ? "/" : base)) router.replace("/");
+    if (!allowed.includes(base === "/" ? "/" : base)) router.replace(allowed[0]);
   }, [role, path, allowed, router]);
   const simulate = async () => {
     setBusy(true);
@@ -327,7 +349,7 @@ function Topbar() {
         <BridgeMark className="h-8 w-8" />
       </Link>
       <form
-        className="relative max-w-md flex-1"
+        className={cn("relative max-w-md flex-1", role === "college" && "invisible")}
         onSubmit={(e) => {
           e.preventDefault();
           router.push(`/cases?q=${encodeURIComponent(q.trim())}`);

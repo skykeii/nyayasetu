@@ -199,6 +199,23 @@ function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
         <section>
           <h3 className="mb-2 text-[14px] font-semibold text-white">Complaint</h3>
           <p className="max-w-[72ch] text-[14px] leading-relaxed text-slate-200">{c.description}</p>
+          {c.originalText && (
+            <div className="mt-3 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2">
+              <div className="mb-1 flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
+                Original ({c.language}) <Advisory>English above is machine-translated ({c.translationSource})</Advisory>
+              </div>
+              <p className="max-w-[72ch] text-[13.5px] leading-relaxed text-slate-300">{c.originalText}</p>
+            </div>
+          )}
+          {c.studentComplaintId && (
+            <div className="mt-2 text-[12.5px] text-slate-400">
+              Escalated from student complaint{" "}
+              <Link href={`/grievances?open=${c.studentComplaintId}`} className="num text-saffron hover:underline">
+                {c.studentComplaintId}
+              </Link>
+              . Identity is masked; only the Competent Authority can reveal it.
+            </div>
+          )}
           <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-[12.5px] text-slate-400">
             <span>
               Complainant: <span className="text-slate-200">{c.complainantName}</span> ({c.complainantType})

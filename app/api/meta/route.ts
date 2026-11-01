@@ -17,6 +17,7 @@ export async function GET(req: Request) {
     categories: CATEGORIES,
     statuses: STATUSES,
     settings: db.settings,
+    colleges: db.institutions.map((i) => ({ id: i.id, name: i.name })),
     seededAt: db.seededAt,
     llm: Boolean(process.env.ANTHROPIC_API_KEY),
   });

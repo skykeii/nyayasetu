@@ -25,6 +25,13 @@ export async function PUT(req: Request) {
     d.settings.warningWindowDays = clamp(body.warningWindowDays, 0, 30, d.settings.warningWindowDays);
     const mc = Number(body.overlapMinConfidence);
     if (Number.isFinite(mc)) d.settings.overlapMinConfidence = Math.min(0.95, Math.max(0.4, Math.round(mc * 100) / 100));
+    d.settings.collegeReminders = {
+      farDays: clamp(body.collegeReminders?.farDays, 1, 30, d.settings.collegeReminders.farDays),
+      nearDays: clamp(body.collegeReminders?.nearDays, 1, 30, d.settings.collegeReminders.nearDays),
+      finalDays: clamp(body.collegeReminders?.finalDays, 1, 30, d.settings.collegeReminders.finalDays),
+    };
+    d.settings.verifyWindowDays = clamp(body.verifyWindowDays, 1, 30, d.settings.verifyWindowDays);
+    d.settings.escalationGraceDays = clamp(body.escalationGraceDays, 0, 30, d.settings.escalationGraceDays);
     recomputeSla(d);
     audit(d, { role: v.role, actor: officerName(d, v), action: "SETTINGS_UPDATE", target: "settings", detail: `before ${before} → after ${JSON.stringify(d.settings)}` });
     return d.settings;

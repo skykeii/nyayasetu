@@ -6,15 +6,21 @@ import type {
   Db,
   Institution,
   InstitutionType,
+  InstitutionSignals,
   Officer,
+  PulseAggregate,
   Region,
   Settings,
   Severity,
   Status,
+  StudentAccount,
+  StudentComplaint,
+  StudentStatus,
 } from "./types";
 import { CATEGORIES } from "./types";
 import { DAY, addDays, chance, int, iso, mulberry32, pick, weighted, type Rng } from "./util";
 import { resolveInstitution } from "./resolve";
+import { DEMO_COLLEGE_INDEX, DEMO_STUDENTS, PULSE_TERM, VOICE_SAMPLES, categoryOf, mockEvidence, pseudonymFor, severityOf } from "./intake";
 
 export const SCHEMA_VERSION = 4;
 
@@ -32,6 +38,9 @@ export const DEFAULT_SETTINGS: Settings = {
   reminderNoActionDays: 14,
   warningWindowDays: 5,
   overlapMinConfidence: 0.62,
+  collegeReminders: { farDays: 7, nearDays: 3, finalDays: 1 },
+  verifyWindowDays: 7,
+  escalationGraceDays: 3,
 };
 
 export const ROUTING: Record<Category, BureauCode> = {
@@ -735,7 +744,165 @@ export function seedDb(nowMs = Date.now()): Db {
     ],
     settings,
     counters: { case: 0, action: actionSeq, audit: 1, group: 0 },
+    ...seedStudentLayer(institutions, settings, NOW),
   };
+}
+
+// ---------- student layer (own RNG, so the data above stays identical) ----------
+const SILENT_COLLEGES = [21, 39, 51];
+// colleges with enough student complaints for a confident handling score
+const FOCUS_COLLEGES = [DEMO_COLLEGE_INDEX, 5, 9, 13, 24, 30, 33, 41, 45, 55, 3, 15, 26, 1, 47, 28];
+const NODAL_FIRST = ["Dr. Ashok", "Prof. Sunita", "Dr. Venkat", "Prof. Rekha", "Dr. Joseph", "Prof. Anil", "Dr. Parveen", "Prof. Geeta"];
+const NODAL_LAST = ["Bhargava", "Kulkarni", "Natarajan", "Sen", "Thomas", "Tiwari", "Ansari", "Hazarika"];
+
+function seedStudentLayer(institutions: Institution[], settings: Settings, NOW: number) {
+  const r = mulberry32(20260265);
+  const iso2 = (t: number) => iso(Math.min(t, NOW));
+  const signals: InstitutionSignals[] = institutions.map((inst, idx) => {
+    const feeNorm = int(r, 60, 140) * 1000;
+    return {
+      institutionId: inst.id,
+      nodalOfficer: `${pick(r, NODAL_FIRST)} ${pick(r, NODAL_LAST)}`,
+      actualIntake: Math.round(inst.approvedIntake * (chance(r, 0.25) ? 1 + r() * 0.22 : 0.82 + r() * 0.18)),
+      feeNorm,
+      feeCharged: Math.round(feeNorm * (chance(r, 0.3) ? 1 + r() * 0.45 : 0.9 + r() * 0.1)),
+      complianceValidUntil: iso(NOW + int(r, -120, 540) * DAY),
+      profile: SILENT_COLLEGES.includes(idx) ? "silent" : undefined,
+    };
+  });
+
+  const students: StudentAccount[] = DEMO_STUDENTS.map((d, i) => {
+    const id = `STU-D${i + 1}`;
+    return { id, apaarId: d.apaarId, mobile: d.mobile, name: d.name, rollNo: d.rollNo, institutionId: institutions[d.collegeIndex].id, pseudonym: pseudonymFor(id), pulseTermsDone: [], pulseInvited: true, demo: true };
+  });
+  const newStudent = (inst: Institution): StudentAccount => {
+    const n = students.length + 1;
+    const id = `STU-${String(n).padStart(4, "0")}`;
+    const s: StudentAccount = {
+      id,
+      apaarId: `APAAR-${int(r, 100000, 999999)}${n}`,
+      mobile: `9${int(r, 100000000, 999999999)}`,
+      name: `${pick(r, FIRST)} ${pick(r, LAST)}`,
+      rollNo: `${inst.shortName}${int(r, 20, 26)}${String(int(r, 1, 999)).padStart(3, "0")}`,
+      institutionId: inst.id,
+      pseudonym: pseudonymFor(id),
+      pulseTermsDone: [],
+      pulseInvited: chance(r, 0.08),
+    };
+    students.push(s);
+    return s;
+  };
+
+  const quality = new Map(institutions.map((i) => [i.id, r()]));
+  const pool = institutions.filter((_, i) => !SILENT_COLLEGES.includes(i));
+  const focus = FOCUS_COLLEGES.map((i) => institutions[i]);
+  const complaints: StudentComplaint[] = [];
+  const samples = VOICE_SAMPLES.filter((s) => s.code !== "en-IN");
+  for (let n = 0; n < 120; n++) {
+    const inst = n < 8 ? focus[0] : chance(r, 0.68) ? pick(r, focus) : pick(r, pool);
+    const student = n < 4 ? students[n % 2] : newStudent(inst);
+    const sample = n % 8 === 3 ? samples[n % samples.length] : undefined;
+    const category = sample ? sample.category : weighted<Category>(r, [["Fee / Refund", 24], ["Faculty Qualification", 10], ["Infrastructure", 22], ["Admission Irregularity", 6], ["Harassment / Ragging", 8], ["Fake Affiliation Claim", 5], ["Exam / Result", 18], ["Placement Misrepresentation", 7]]);
+    const tIdx = Math.floor(r() * TEMPLATES[category].length);
+    const english = sample ? sample.translation : fill(TEMPLATES[category][tIdx], r, inst.name);
+    const sev = severityOf(english, category);
+    const sla = settings.slaDays[category];
+    const q = quality.get(inst.id)!;
+    // better-run colleges close more complaints with student confirmation
+    const status: StudentStatus =
+      n < 4
+        ? (["With College", "With College", "Resolved - Pending Verification", "Closed - Verified"] as StudentStatus[])[n]
+        : weighted<StudentStatus>(r, [
+            ["With College", 34],
+            ["Resolved - Pending Verification", 12],
+            ["Closed - Verified", 16 + q * 48],
+            ["Closed - Unverified", 4 + (1 - q) * 14],
+            ["Escalated to AICTE", 2 + (1 - q) * 14],
+          ]);
+    const open = status === "With College";
+    const pending = status === "Resolved - Pending Verification";
+    const overdueAtCollege = open && n >= 4 && chance(r, 0.12);
+    const age = open ? (overdueAtCollege ? sla + 1 : int(r, 1, Math.max(2, sla - 1))) : pending ? int(r, 6, 30) : int(r, 12, 320);
+    const createdMs = NOW - age * DAY - int(r, 1, 20) * 3600000;
+    const dueMs = createdMs + sla * DAY;
+    const c: StudentComplaint = {
+      id: `SC-${new Date(createdMs).getFullYear()}-${String(n + 1).padStart(5, "0")}`,
+      studentId: student.id,
+      pseudonym: student.pseudonym,
+      institutionId: inst.id,
+      category,
+      subject: sample ? sample.subject : SUBJECTS[category][tIdx],
+      channel: sample ? "Voice" : chance(r, 0.12) ? "Photo" : "Text",
+      language: sample ? sample.language : "English",
+      originalText: sample ? sample.original : english,
+      translatedText: english,
+      translationSource: sample ? "sample" : "original",
+      severity: sev.severity,
+      severityReason: sev.reason,
+      categoryReason: categoryOf(english).reason,
+      routedBureau: ROUTING[category],
+      status,
+      createdAt: iso2(createdMs),
+      dueAt: iso(dueMs),
+      escalationLevel: overdueAtCollege ? 1 : 0,
+      reminders: [],
+      actions: [{ at: iso2(createdMs), type: "Submitted", by: student.pseudonym, remarks: `Complaint submitted through the student portal (${sample ? "voice" : "text"}).` }],
+      suspicious: [],
+    };
+    const nodal = signals.find((x) => x.institutionId === c.institutionId)!.nodalOfficer;
+    if (open) {
+      const at = iso2(NOW - int(r, 0, 2) * DAY - 3600000);
+      const message = overdueAtCollege ? "Disposal date passed; escalated to the Principal." : `Action pending. Disposal due ${new Date(dueMs).toISOString().slice(0, 10)}.`;
+      c.reminders.push({ at, channel: "In-app", to: nodal, message }, { at, channel: "SMS (simulated)", to: nodal, message });
+      c.lastReminderAt = at;
+      if (overdueAtCollege) c.actions.push({ at: iso2(dueMs + 3600000), type: "Auto-escalated", by: "System", remarks: "Disposal date passed. Escalated to the Principal." });
+    } else {
+      const resolvedMs = pending ? NOW - int(r, 1, 5) * DAY : createdMs + Math.min(age - 1, int(r, 3, sla + 8)) * DAY;
+      const note = `Action taken on the complaint and ${category.toLowerCase()} records updated by the college. Photographs and the order are attached.`;
+      const docs = [{ name: `Proof_${c.id}.pdf`, size: int(r, 90, 900) * 1000 }];
+      c.proof = { note, docs, at: iso2(resolvedMs), by: nodal };
+      c.evidence = mockEvidence({ category, note, docs, at: iso2(resolvedMs) });
+      c.verifyBy = iso(resolvedMs + settings.verifyWindowDays * DAY);
+      c.actions.push({ at: iso2(resolvedMs), type: "Proof uploaded", by: nodal, remarks: `Marked resolved, pending student verification. ${note}` });
+      const decided = Math.min(NOW - 3600000, resolvedMs + int(r, 1, 6) * DAY);
+      if (status === "Closed - Verified") {
+        c.closedAt = iso2(decided);
+        c.actions.push({ at: iso2(decided), type: "Student confirmed: Done", by: student.pseudonym, remarks: "Closed as verified by the student." });
+      } else if (status === "Closed - Unverified") {
+        c.closedAt = iso2(resolvedMs + settings.verifyWindowDays * DAY);
+        c.actions.push({ at: c.closedAt, type: "Closed - Unverified", by: "System", remarks: `No student response in ${settings.verifyWindowDays} days. Counts less than a verified closure.` });
+      } else if (status === "Escalated to AICTE") {
+        c.escalationLevel = 2;
+        c.reopened = true;
+        c.actions.push({ at: iso2(decided), type: "Student responded: Not done", by: student.pseudonym, remarks: `Reopened and escalated to ${ROUTING[category]} at AICTE, not returned to the college.` });
+      }
+    }
+    complaints.push(c);
+  }
+  complaints.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const flagged = complaints.filter((c) => c.status === "With College").slice(0, 3);
+  flagged.forEach((c) => c.suspicious.push("Near-duplicate wording across accounts (advisory): verify genuineness"));
+
+  // pulse survey totals for ~40 colleges, including low-response totals for the silent ones
+  const pulse: PulseAggregate[] = [];
+  const ranked = [...focus, ...pool.filter((i) => !focus.includes(i))].slice(0, 37);
+  for (const inst of [...ranked, ...SILENT_COLLEGES.map((i) => institutions[i])]) {
+    const silent = SILENT_COLLEGES.includes(institutions.indexOf(inst));
+    const invited = Math.round(inst.enrolment * (0.05 + r() * 0.05));
+    const responded = silent ? Math.max(2, Math.round(invited * 0.04)) : Math.round(invited * (0.28 + r() * 0.45));
+    const q = quality.get(inst.id)!;
+    const mean = () => 2.2 + q * 1.9 + (r() - 0.5) * 0.7;
+    pulse.push({
+      institutionId: inst.id,
+      term: PULSE_TERM,
+      invited,
+      responded,
+      sums: { infrastructure: Math.round(mean() * responded), faculty: Math.round(mean() * responded), fees: Math.round(mean() * responded), safety: Math.round(mean() * responded) },
+      unable: Math.round(responded * (silent ? 0.55 : (1 - q) * 0.3 + r() * 0.06)),
+    });
+  }
+
+  return { students, studentComplaints: complaints, studentSessions: [], otpRequests: [], pulse, signals };
 }
 
 export { OFFICERS, TEMPLATES, SUBJECTS, SCENARIOS, variantName, fill };

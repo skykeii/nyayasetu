@@ -129,10 +129,13 @@ export interface Case {
   matchReason: string;
   complainantType: "Student" | "Parent" | "Faculty" | "Staff" | "Anonymous" | "Public";
   complainantName: string;
-  channel: "AICTE Portal" | "Email" | "Post" | "CPGRAMS" | "Helpline" | "Referred by Ministry";
+  channel: "AICTE Portal" | "Email" | "Post" | "CPGRAMS" | "Helpline" | "Referred by Ministry" | "Voice Intake" | "Student Portal";
   language: string;
   subject: string;
   description: string;
+  originalText?: string; // transcript or text as given, when not in English
+  translationSource?: TranslationSource;
+  studentComplaintId?: string;
   lastAction: string;
   lastActionDate: string;
   nextAction: string;
@@ -168,6 +171,111 @@ export interface Settings {
   reminderNoActionDays: number;
   warningWindowDays: number;
   overlapMinConfidence: number;
+  collegeReminders: { farDays: number; nearDays: number; finalDays: number };
+  verifyWindowDays: number;
+  escalationGraceDays: number;
+}
+
+// ---------------- student layer ----------------
+export type TranslationSource = "original" | "sample" | "llm" | "glossary" | "unavailable";
+
+export type StudentStatus = "With College" | "Resolved - Pending Verification" | "Closed - Verified" | "Closed - Unverified" | "Escalated to AICTE" | "Closed by AICTE";
+
+export interface StudentAccount {
+  id: string;
+  apaarId: string;
+  mobile: string;
+  name: string;
+  rollNo: string;
+  institutionId: string;
+  pseudonym: string; // "Student #A7F3"
+  pulseTermsDone: string[];
+  pulseInvited: boolean;
+  demo?: boolean;
+}
+
+export interface EvidenceReport {
+  score: number; // 0-100, advisory
+  verdict: "Likely matches" | "Partial match" | "Weak match";
+  explanation: string;
+  source: "mock" | "llm";
+  at: string;
+}
+
+export interface StudentAction {
+  at: string;
+  type: string;
+  by: string;
+  remarks: string;
+}
+
+export interface CollegeReminder {
+  at: string;
+  channel: "In-app" | "SMS (simulated)";
+  to: string;
+  message: string;
+}
+
+export interface StudentComplaint {
+  id: string; // SC-2026-00001
+  studentId: string;
+  pseudonym: string;
+  institutionId: string;
+  category: Category;
+  subject: string;
+  channel: "Text" | "Voice" | "Photo";
+  language: string;
+  originalText: string;
+  translatedText: string;
+  translationSource: TranslationSource;
+  severity: Severity;
+  severityReason: string;
+  categoryReason: string;
+  routedBureau: BureauCode;
+  status: StudentStatus;
+  createdAt: string;
+  dueAt: string;
+  escalationLevel: 0 | 1 | 2; // 0 nodal officer, 1 principal, 2 AICTE
+  photo?: DocRef;
+  proof?: { note: string; docs: DocRef[]; at: string; by: string };
+  evidence?: EvidenceReport;
+  verifyBy?: string;
+  closedAt?: string;
+  reopened?: boolean;
+  caseId?: string;
+  lastReminderAt?: string;
+  reminders: CollegeReminder[];
+  actions: StudentAction[];
+  suspicious: string[]; // visible to AICTE only
+}
+
+export const PULSE_QUESTIONS = ["infrastructure", "faculty", "fees", "safety"] as const;
+export type PulseQuestion = (typeof PULSE_QUESTIONS)[number];
+
+/** Pulse answers are stored only as totals, so no response can be traced to a student. */
+export interface PulseAggregate {
+  institutionId: string;
+  term: string;
+  invited: number;
+  responded: number;
+  sums: Record<PulseQuestion, number>;
+  unable: number; // said they felt unable to complain
+}
+
+export interface InstitutionSignals {
+  institutionId: string;
+  nodalOfficer: string;
+  actualIntake: number;
+  feeCharged: number;
+  feeNorm: number;
+  complianceValidUntil: string;
+  profile?: "silent";
+}
+
+export interface StudentSession {
+  token: string;
+  studentId: string;
+  expiresAt: string;
 }
 
 export interface Db {
@@ -182,6 +290,12 @@ export interface Db {
   audit: AuditEntry[];
   settings: Settings;
   counters: { case: number; action: number; audit: number; group: number };
+  students: StudentAccount[];
+  studentComplaints: StudentComplaint[];
+  studentSessions: StudentSession[];
+  otpRequests: { key: string; at: string; kind: "request" | "fail" }[];
+  pulse: PulseAggregate[];
+  signals: InstitutionSignals[];
 }
 
-export type RoleKey = "ca" | "rb" | "pgrc" | "other" | "ro";
+export type RoleKey = "ca" | "rb" | "pgrc" | "other" | "ro" | "college";

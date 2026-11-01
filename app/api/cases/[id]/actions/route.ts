@@ -94,6 +94,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       case "Dispose":
         cs.status = "Disposed";
         cs.disposedAt = now;
+        const sc = d.studentComplaints.find((x) => x.caseId === cs.id);
+        if (sc) {
+          sc.status = "Closed by AICTE";
+          sc.closedAt = now;
+          sc.actions.push({ at: now, type: "Closed by AICTE", by: `${cs.bureau}, AICTE`, remarks });
+        }
         break;
       default:
         break;

@@ -84,6 +84,40 @@ export default function SettingsPage() {
           </div>
         </div>
       </Card>
+      <Card>
+        <CardHeader title="Student complaints at colleges" sub="Reminders get more frequent as the disposal date nears; simulated SMS is logged, not sent" />
+        <div className="grid gap-5 px-5 pb-5 sm:grid-cols-3">
+          {(
+            [
+              ["Reminder gap, early", "farDays"],
+              ["Reminder gap, last half", "nearDays"],
+              ["Reminder gap, last 20%", "finalDays"],
+            ] as const
+          ).map(([label, key]) => (
+            <div key={key}>
+              <Label>{label}</Label>
+              <div className="flex items-center gap-2">
+                <Input type="number" min={1} max={30} value={s.collegeReminders[key]} onChange={(e) => setS({ ...s, collegeReminders: { ...s.collegeReminders, [key]: Number(e.target.value) } })} className="w-24" disabled={role !== "ca"} />
+                <span className="text-[13px] text-slate-400">days</span>
+              </div>
+            </div>
+          ))}
+          <div>
+            <Label>Student verification window</Label>
+            <div className="flex items-center gap-2">
+              <Input type="number" min={1} max={30} value={s.verifyWindowDays} onChange={(e) => setS({ ...s, verifyWindowDays: Number(e.target.value) })} className="w-24" disabled={role !== "ca"} />
+              <span className="text-[13px] text-slate-400">days, then Closed - Unverified</span>
+            </div>
+          </div>
+          <div>
+            <Label>AICTE escalation after overdue</Label>
+            <div className="flex items-center gap-2">
+              <Input type="number" min={0} max={30} value={s.escalationGraceDays} onChange={(e) => setS({ ...s, escalationGraceDays: Number(e.target.value) })} className="w-24" disabled={role !== "ca"} />
+              <span className="text-[13px] text-slate-400">days</span>
+            </div>
+          </div>
+        </div>
+      </Card>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="danger" onClick={reset} disabled={role !== "ca"}>
           <RotateCcw className="h-4 w-4" /> Regenerate demo data
