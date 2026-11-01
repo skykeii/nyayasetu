@@ -8,7 +8,7 @@ import { BUREAUS } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const KINDS = ["Remark", "Notice Issued", "Reply Received", "Hearing Scheduled", "Accept", "Transfer", "Escalate", "Return", "Dispose"] as const;
+const KINDS = ["Remark", "Notice Issued", "Reply Received", "Hearing Scheduled", "Accept", "Assign", "Transfer", "Escalate", "Return", "Dispose"] as const;
 type Kind = (typeof KINDS)[number];
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
@@ -22,6 +22,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const kind = String(form.get("kind") ?? "") as Kind;
   const remarks = String(form.get("remarks") ?? "").trim();
   const toBureau = String(form.get("toBureau") ?? "") as BureauCode;
+  const officerId = String(form.get("officerId") ?? "");
   if (!KINDS.includes(kind)) return json({ error: "Unknown action" }, { status: 400 });
   if (remarks.length < 5) return json({ error: "Remarks are mandatory (min 5 characters) — every action needs a recorded human decision." }, { status: 400 });
 
@@ -30,6 +31,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (kind === "Return" && v.role !== "ca") return forbidden("Only the Competent Authority can return escalated cases with directions.");
   if (c.status === "Disposed" && kind !== "Remark") return json({ error: "Case already disposed" }, { status: 400 });
   if (kind === "Transfer" && (!BUREAUS.some((b) => b.code === toBureau) || toBureau === c.bureau)) return json({ error: "Choose a different destination bureau/cell" }, { status: 400 });
+
+  if (kind === "Assign" && db.officers.find((o) => o.id === officerId)?.bureau !== c.bureau) return json({ error: "Choose an officer of the handling bureau/cell" }, { status: 400 });
 
   const docs: DocRef[] = [];
   for (const f of form.getAll("files")) {
@@ -53,6 +56,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       "Reply Received": "Reply Received",
       "Hearing Scheduled": "Hearing Scheduled",
       Accept: "Assigned",
+      Assign: "Assigned",
       Transfer: "Transferred",
       Escalate: "Escalated",
       Return: "Status Change",
@@ -68,6 +72,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         break;
       case "Accept": {
         const off = d.officers.find((o) => o.bureau === cs.bureau && o.id === v.officerId) ?? d.officers.find((o) => o.bureau === cs.bureau)!;
+        cs.officerId = off.id;
+        a.to = off.name;
+        cs.status = "Under Process";
+        break;
+      }
+      case "Assign": {
+        const off = d.officers.find((o) => o.id === officerId)!;
         cs.officerId = off.id;
         a.to = off.name;
         cs.status = "Under Process";

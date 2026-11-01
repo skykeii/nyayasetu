@@ -3,6 +3,7 @@ import { decorate, forbidden, isOwnCase, json, officerName, viewerFrom, visibleI
 import { detectOverlaps } from "@/lib/overlap";
 import { resolveInstitution } from "@/lib/resolve";
 import { ROLES } from "@/lib/roles";
+import { suggestRouting } from "@/lib/student";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     group,
     resolution,
     permissions,
+    routing: c.status === "New" && own ? suggestRouting(db, c.category, c.institutionId) : undefined,
     history: db.cases
       .filter((x) => x.institutionId === c.institutionId && x.id !== c.id && vis.has(x.id))
       .sort((a, b) => b.dateReceived.localeCompare(a.dateReceived))

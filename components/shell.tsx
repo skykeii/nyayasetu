@@ -3,7 +3,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, Building2, ClipboardList, FileBarChart2, GitMerge, GraduationCap, LayoutDashboard, Mic, Plus, School, Search, Settings2, ShieldCheck, UserCircle2, X, ChevronDown } from "lucide-react";
+import { Bell, Building2, ClipboardList, FileBarChart2, GitMerge, GraduationCap, LayoutDashboard, Map as MapIcon, Mic, Plus, School, Search, Settings2, ShieldCheck, UserCircle2, X, ChevronDown } from "lucide-react";
 import { RoleProvider, useApi, useRole, type Toast } from "./role-provider";
 import { Button, Select, cn } from "./ui";
 import { OverlapPulse } from "./bits";
@@ -19,6 +19,7 @@ const NAV = [
   { href: "/intake", label: "Voice and text intake", icon: Mic },
   { href: "/institutions", label: "Institutions", icon: Building2 },
   { href: "/overlaps", label: "Overlaps", icon: GitMerge },
+  { href: "/heatmap", label: "Regional heatmap", icon: MapIcon },
   { href: "/grievances", label: "Student grievances", icon: GraduationCap },
   { href: "/alerts", label: "Alerts", icon: Bell },
   { href: "/reports", label: "Reports", icon: FileBarChart2 },

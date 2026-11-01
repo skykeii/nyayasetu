@@ -20,7 +20,7 @@ export const ROLES: Record<RoleKey, RoleDef> = {
     regional: false,
     defaultOfficer: "CA-1",
     can: { act: true, link: true, settings: true, audit: true, simulate: true },
-    nav: ["/", "/cases", "/intake", "/institutions", "/overlaps", "/grievances", "/alerts", "/reports", "/audit", "/settings"],
+    nav: ["/", "/cases", "/intake", "/institutions", "/overlaps", "/heatmap", "/grievances", "/alerts", "/reports", "/audit", "/settings"],
   },
   rb: {
     key: "rb",
@@ -30,7 +30,7 @@ export const ROLES: Record<RoleKey, RoleDef> = {
     regional: false,
     defaultOfficer: "RB-2",
     can: { act: true, link: true, settings: false, audit: false, simulate: true },
-    nav: ["/", "/cases", "/intake", "/institutions", "/overlaps", "/grievances", "/alerts", "/reports"],
+    nav: ["/", "/cases", "/intake", "/institutions", "/overlaps", "/heatmap", "/grievances", "/alerts", "/reports"],
   },
   pgrc: {
     key: "pgrc",
@@ -40,7 +40,7 @@ export const ROLES: Record<RoleKey, RoleDef> = {
     regional: false,
     defaultOfficer: "PGRC-2",
     can: { act: true, link: true, settings: false, audit: false, simulate: true },
-    nav: ["/", "/cases", "/intake", "/institutions", "/overlaps", "/grievances", "/alerts", "/reports"],
+    nav: ["/", "/cases", "/intake", "/institutions", "/overlaps", "/heatmap", "/grievances", "/alerts", "/reports"],
   },
   other: {
     key: "other",
@@ -50,7 +50,7 @@ export const ROLES: Record<RoleKey, RoleDef> = {
     regional: false,
     defaultOfficer: "AB-2",
     can: { act: true, link: true, settings: false, audit: false, simulate: true },
-    nav: ["/", "/cases", "/intake", "/institutions", "/overlaps", "/grievances", "/alerts", "/reports"],
+    nav: ["/", "/cases", "/intake", "/institutions", "/overlaps", "/heatmap", "/grievances", "/alerts", "/reports"],
   },
   ro: {
     key: "ro",
@@ -60,7 +60,7 @@ export const ROLES: Record<RoleKey, RoleDef> = {
     regional: true,
     defaultOfficer: "RO-S",
     can: { act: false, link: false, settings: false, audit: false, simulate: false },
-    nav: ["/", "/cases", "/institutions", "/overlaps", "/grievances", "/alerts", "/reports"],
+    nav: ["/", "/cases", "/institutions", "/overlaps", "/heatmap", "/grievances", "/alerts", "/reports"],
   },
   college: {
     key: "college",

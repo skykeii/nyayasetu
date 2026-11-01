@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/store";
 import { json, slaInfo, viewerFrom, visibleIds } from "@/lib/server";
 import { detectOverlaps } from "@/lib/overlap";
+import { riskFor } from "@/lib/risk";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,10 @@ export async function GET(req: Request) {
     .map((i) => {
       const cs = db.cases.filter((c) => c.institutionId === i.id && vis.has(c.id));
       const open = cs.filter((c) => c.status !== "Disposed");
+      const risk = riskFor(db, i.id)!;
       return {
         ...i,
+        risk: { score: risk.score, confidence: risk.confidence, band: risk.band },
         total: cs.length,
         open: open.length,
         disposed: cs.length - open.length,

@@ -28,6 +28,7 @@ import type { CaseView } from "@/lib/server";
 import type { CaseAction, Institution, LinkGroup } from "@/lib/types";
 import type { OverlapCluster } from "@/lib/overlap";
 import type { Resolution } from "@/lib/resolve";
+import type { RoutingSuggestion } from "@/lib/student";
 import { fmtDate, fmtDateTime } from "@/lib/util";
 
 interface Detail {
@@ -38,6 +39,7 @@ interface Detail {
   resolution: Resolution;
   permissions: { remark: boolean; act: boolean; accept: boolean; escalate: boolean; returnToBureau: boolean; transfer: boolean; dispose: boolean; link: boolean };
   history: { id: string; bureau: string; status: string; category: string; dateReceived: string; subject: string }[];
+  routing?: RoutingSuggestion;
 }
 
 const ICON: Record<CaseAction["type"], React.ComponentType<{ className?: string }>> = {
@@ -98,6 +100,46 @@ export function CaseDrawer({ id, onClose }: { id: string | null; onClose: () => 
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+function RoutingCard({ caseId, bureau, routing, onDone }: { caseId: string; bureau: string; routing: RoutingSuggestion; onDone: () => void }) {
+  const { api, toast, bump } = useRole();
+  const [busy, setBusy] = React.useState(false);
+  const officer = routing.officers.find((o) => o.id === routing.officerId);
+  const elsewhere = routing.bureau !== bureau;
+  const confirm = async () => {
+    setBusy(true);
+    const form = new FormData();
+    form.set("kind", elsewhere ? "Transfer" : "Assign");
+    form.set("remarks", `Routing suggestion reviewed and confirmed by the official: ${elsewhere ? routing.bureau : officer?.name}.`);
+    if (elsewhere) form.set("toBureau", routing.bureau);
+    else form.set("officerId", routing.officerId);
+    try {
+      await api(`/api/cases/${caseId}/actions`, { method: "POST", body: form });
+      toast({ title: elsewhere ? `Transferred to ${routing.bureau}` : `Assigned to ${officer?.name}`, tone: "emerald" });
+      onDone();
+      bump();
+    } catch (e) {
+      toast({ title: "Not confirmed", body: (e as Error).message, tone: "red" });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className={cn("rounded-xl border p-4", routing.caution ? "border-violet-300/35 bg-violet-500/[0.07]" : "border-sky-300/25 bg-sky-400/[0.05]")}>
+      <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[14px] font-semibold text-white">
+        Routing suggestion: {elsewhere ? `transfer to ${routing.bureau}` : officer?.name} <Advisory />
+      </div>
+      <ul className="mb-3 list-disc space-y-0.5 pl-5 text-[13px] text-slate-300">
+        {routing.why.map((w) => (
+          <li key={w}>{w}</li>
+        ))}
+      </ul>
+      <Button size="sm" variant="secondary" onClick={confirm} loading={busy}>
+        <UserCheck className="h-4 w-4" /> Confirm suggestion
+      </Button>
+    </section>
   );
 }
 
@@ -224,6 +266,8 @@ function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
             <span>Language: {c.language}{c.language !== "English" ? " (shown in English translation)" : ""}</span>
           </div>
         </section>
+
+        {data.routing && <RoutingCard caseId={c.id} bureau={c.bureau} routing={data.routing} onDone={reload} />}
 
         {(data.permissions.remark || data.permissions.act) && <ActionPanel data={data} onDone={reload} />}
 

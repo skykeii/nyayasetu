@@ -1,19 +1,31 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { useApi, useRole } from "@/components/role-provider";
 import { Badge, Card, Input, Select, Skeleton, cn } from "@/components/ui";
 import { BureauChip, ErrorNote } from "@/components/bits";
+import { ConfidenceBadge } from "@/components/risk-panel";
+import type { Confidence } from "@/lib/risk";
 import type { Institution } from "@/lib/types";
 import { fmtDate } from "@/lib/util";
 
-type Row = Institution & { total: number; open: number; disposed: number; overdue: number; bureaus: string[]; overlaps: number; lastComplaint?: string };
+type Row = Institution & { total: number; open: number; disposed: number; overdue: number; bureaus: string[]; overlaps: number; lastComplaint?: string; risk: { score: number; confidence: Confidence; band: string } };
 
-export default function InstitutionsPage() {
+export default function InstitutionsPageWrap() {
+  return (
+    <React.Suspense fallback={<Skeleton className="h-96" />}>
+      <InstitutionsPage />
+    </React.Suspense>
+  );
+}
+
+function InstitutionsPage() {
   const { meta, role, region: myRegion } = useRole();
+  const params = useSearchParams();
   const [q, setQ] = React.useState("");
-  const [region, setRegion] = React.useState("");
+  const [region, setRegion] = React.useState(params.get("region") ?? "");
   const [dq, setDq] = React.useState("");
   React.useEffect(() => {
     const t = setTimeout(() => setDq(q), 250);
@@ -48,7 +60,7 @@ export default function InstitutionsPage() {
           <span className="num font-semibold text-white">{data?.total ?? "…"}</span> institutions
         </div>
         <div className="scroll-thin overflow-x-auto">
-          <table className="w-full min-w-[980px] text-[13px]">
+          <table className="w-full min-w-[1140px] text-[13px]">
             <thead>
               <tr className="border-y border-white/[0.06] text-left text-[12px] text-slate-500">
                 <th className="px-5 py-2.5 font-medium">Institution</th>
@@ -59,6 +71,7 @@ export default function InstitutionsPage() {
                 <th className="px-2 py-2.5 text-right font-medium">Overdue</th>
                 <th className="px-2 py-2.5 font-medium">Units handling now</th>
                 <th className="px-2 py-2.5 font-medium">Overlaps</th>
+                <th className="px-2 py-2.5 font-medium">Risk index (advisory)</th>
                 <th className="px-5 py-2.5 font-medium">Last complaint</th>
               </tr>
             </thead>
@@ -66,7 +79,7 @@ export default function InstitutionsPage() {
               {loading &&
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={9} className="px-5 py-2">
+                    <td colSpan={10} className="px-5 py-2">
                       <Skeleton className="h-9" />
                     </td>
                   </tr>
@@ -95,12 +108,18 @@ export default function InstitutionsPage() {
                     </div>
                   </td>
                   <td className="px-2 py-2.5">{i.overlaps ? <Badge tone="violet">{i.overlaps} open</Badge> : <span className="text-slate-600">0</span>}</td>
+                  <td className="px-2 py-2.5" title={i.risk.band}>
+                    <span className="flex items-center gap-2">
+                      <span className={cn("num font-semibold", i.risk.confidence === "Low" ? "text-slate-500" : "text-white")}>{i.risk.score}</span>
+                      <ConfidenceBadge c={i.risk.confidence} />
+                    </span>
+                  </td>
                   <td className="num px-5 py-2.5 text-slate-400">{fmtDate(i.lastComplaint)}</td>
                 </tr>
               ))}
               {data && !data.items.length && (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400">
+                  <td colSpan={10} className="py-12 text-center text-slate-400">
                     No institution matches “{dq}”. Try the Permanent ID or the city.
                   </td>
                 </tr>

@@ -2,6 +2,7 @@ import { getDb } from "@/lib/store";
 import { decorate, forbidden, json, viewerFrom, visibleIds } from "@/lib/server";
 import { detectOverlaps } from "@/lib/overlap";
 import { BUREAUS, CATEGORIES } from "@/lib/types";
+import { riskFor } from "@/lib/risk";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     .slice(0, 40);
   return json({
     institution: inst,
+    risk: riskFor(db, inst.id),
     cases: cases.map((c) => decorate(db, c, clusters, { v })),
     hiddenCount: all.length - cases.length,
     clusters: instClusters,

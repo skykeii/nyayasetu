@@ -8,6 +8,8 @@ import { BureauChip, Confidence, CountUp, ErrorNote, SlaBadge, StatusBadge } fro
 import { BarsChart } from "@/components/charts";
 import { OverlapBridge } from "@/components/overlap-bridge";
 import { CaseDrawer, Fact } from "@/components/case-drawer";
+import { RiskPanel } from "@/components/risk-panel";
+import type { RiskResult } from "@/lib/risk";
 import type { CaseView } from "@/lib/server";
 import type { CaseAction, Institution } from "@/lib/types";
 import type { OverlapCluster } from "@/lib/overlap";
@@ -15,6 +17,7 @@ import { fmtDate, fmtDateTime } from "@/lib/util";
 
 interface Profile {
   institution: Institution;
+  risk: RiskResult;
   cases: CaseView[];
   hiddenCount: number;
   clusters: OverlapCluster[];
@@ -106,6 +109,8 @@ export default function InstitutionProfile({ params }: { params: { id: string } 
         )}
         {data.hiddenCount > 0 && <div className="mt-3 text-[12.5px] text-slate-500">{data.hiddenCount} further case(s) on this institution sit with units outside your role&apos;s visibility.</div>}
       </Card>
+
+      <RiskPanel risk={data.risk} />
 
       {data.clusters.length > 0 && (
         <Card>

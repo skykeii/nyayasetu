@@ -6,6 +6,7 @@ import { Badge, Card, CardHeader, Skeleton, cn } from "@/components/ui";
 import { BureauChip, Confidence, CountUp, ErrorNote, SeverityDot } from "@/components/bits";
 import { BarsChart, LinesChart } from "@/components/charts";
 import { OverlapBridge } from "@/components/overlap-bridge";
+import { MetricToggle, StateHeatmap, type AreaRow, type Metric } from "@/components/state-heatmap";
 import { CaseDrawer } from "@/components/case-drawer";
 import type { Severity, Status } from "@/lib/types";
 import { fmtDateTime } from "@/lib/util";
@@ -35,6 +36,8 @@ export default function CommandCenter() {
   const { role } = useRole();
   const { data, error, loading } = useApi<Dash>("/api/dashboard", { interval: 5000 });
   const [open, setOpen] = React.useState<string | null>(null);
+  const { data: map } = useApi<{ states: AreaRow[] }>("/api/heatmap", { interval: 30000 });
+  const [metric, setMetric] = React.useState<Metric>("density");
   if (error) return <ErrorNote msg={error} />;
 
   const k = data?.kpi;
@@ -222,6 +225,22 @@ export default function CommandCenter() {
           </div>
         </Card>
       </div>
+
+      <Card className="min-w-0">
+        <CardHeader
+          title="Regional heatmap"
+          sub="Select a state to open that region's cases."
+          right={
+            <Link href="/heatmap" className="text-[13px] font-medium text-saffron hover:underline">
+              Full heatmap
+            </Link>
+          }
+        />
+        <div className="px-5 pb-5">
+          <MetricToggle metric={metric} onChange={setMetric} />
+          <div className="mt-3">{map ? <StateHeatmap rows={map.states} metric={metric} /> : <Skeleton className="h-96" />}</div>
+        </div>
+      </Card>
 
       <div className="grid gap-5 xl:grid-cols-[1fr_1.55fr]">
         <Card className="min-w-0">
