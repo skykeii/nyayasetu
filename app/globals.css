@@ -87,13 +87,48 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 @media print {
+  html,
   body {
-    background: white;
-    color: black;
+    background: white !important;
+    background-image: none !important;
+    color: #111 !important;
   }
   aside,
   header,
   .no-print {
     display: none !important;
+  }
+  main * {
+    color: #111 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  main .glass,
+  main thead,
+  main tr,
+  main td,
+  main th {
+    background: white !important;
+    border-color: #bbb !important;
+  }
+  main .scroll-thin {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  main table {
+    min-width: 0 !important;
+  }
+  main .glass,
+  main tr {
+    break-inside: avoid;
+  }
+  /* chart axis text and grid lines are SVG, so they need fill and stroke */
+  main svg text {
+    fill: #111 !important;
+  }
+  main .recharts-cartesian-grid line {
+    stroke: #ddd !important;
   }
 }

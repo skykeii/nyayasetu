@@ -19,9 +19,9 @@ export async function POST(req: Request) {
   const body = (await req.json()) as { ids?: string[]; all?: boolean };
   const ids = body.all ? buildAlerts(db, v).map((a) => a.id) : body.ids ?? [];
   touch((d) => {
-    const s = new Set(d.alertReads);
+    const s = new Set(d.alertReads[v.role] ?? []);
     ids.forEach((i) => s.add(i));
-    d.alertReads = [...s];
+    d.alertReads[v.role] = [...s];
   });
   return json({ ok: true, marked: ids.length });
 }

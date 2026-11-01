@@ -27,7 +27,9 @@ npm run dev        # http://localhost:3000
 
 ## Roles (demo sign-in, top-right)
 
-No passwords. Pick a role in the top-bar switcher; the client sends `x-role` / `x-region` / `x-officer` headers and **every API route enforces visibility and permissions server-side**.
+No passwords. Pick a role in the top-bar switcher; the client sends `x-role` / `x-region` / `x-officer` headers and **every API route enforces visibility and permissions server-side**. A request with no valid role gets `401`.
+
+> **Role switching is demo-only and header-based.** The server trusts whatever role the request claims, so anyone who can reach the API can claim any role. Replace it with real authentication before any non-demo use.
 
 | Role | Sees | Can do |
 | --- | --- | --- |
@@ -72,7 +74,7 @@ For every pair of open cases:
 
 ## Seed data (`lib/seed.ts`, deterministic)
 
-60 fictional institutions across all eight AICTE regions, ~340 cases over 18 months in eight categories, five bureaus/cells and six languages. Planted for the demo: 15 cross-bureau overlap clusters (3 of them spanning three units) worded differently with name variants and mistyped IDs, 10 SLA-breaching cases, 5 transfer/escalation chains and 2 suspicious complaint bursts. All names of institutions, officers and complainants are invented.
+60 fictional institutions across all eight AICTE regions, ~340 cases over 18 months in eight categories, five bureaus/cells and six languages. Planted for the demo: 15 cross-bureau overlap clusters (2 of them spanning three units) worded differently with name variants and mistyped IDs, 10 SLA-breaching cases, 5 transfer/escalation chains and 2 suspicious complaint bursts. All names of institutions, officers and complainants are invented.
 
 ## Project layout
 

@@ -11,16 +11,19 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const v = viewerFrom(req, db);
   const c = db.cases.find((x) => x.id === params.id);
   if (!c) return json({ error: "Case not found" }, { status: 404 });
-  if (!visibleIds(db, v).has(c.id)) return forbidden("This case is outside your role's visibility");
+  const vis = visibleIds(db, v);
+  if (!vis.has(c.id)) return forbidden("This case is outside your role's visibility");
   const { clusters } = detectOverlaps(db);
   const mine = clusters.filter((cl) => cl.caseIds.includes(c.id));
   const caseById = new Map(db.cases.map((x) => [x.id, x]));
   const related = mine.map((cl) => ({
     ...cl,
-    cases: cl.caseIds.map((id) => {
-      const o = caseById.get(id)!;
-      return { id, bureau: o.bureau, status: o.status, subject: o.subject, reference: o.reference, reportedName: o.reportedName, dateReceived: o.dateReceived };
-    }),
+    cases: cl.caseIds
+      .filter((id) => vis.has(id))
+      .map((id) => {
+        const o = caseById.get(id)!;
+        return { id, bureau: o.bureau, status: o.status, subject: o.subject, reference: o.reference, reportedName: o.reportedName, dateReceived: o.dateReceived };
+      }),
   }));
   const group = c.linkGroupId ? db.linkGroups.find((g) => g.id === c.linkGroupId) : undefined;
   const inst = db.institutions.find((i) => i.id === c.institutionId);
@@ -47,7 +50,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     resolution,
     permissions,
     history: db.cases
-      .filter((x) => x.institutionId === c.institutionId && x.id !== c.id)
+      .filter((x) => x.institutionId === c.institutionId && x.id !== c.id && vis.has(x.id))
       .sort((a, b) => b.dateReceived.localeCompare(a.dateReceived))
       .slice(0, 8)
       .map((x) => ({ id: x.id, bureau: x.bureau, status: x.status, category: x.category, dateReceived: x.dateReceived, subject: x.subject })),

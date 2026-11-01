@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import type { BureauCode, Case, Db, Region, RoleKey } from "./types";
 import { BUREAUS, REGIONS } from "./types";
-import { ROLES, type Viewer } from "./roles";
+import { ROLES, ROLE_KEYS, type Viewer } from "./roles";
 import { detectBursts, detectOverlaps, type OverlapCluster } from "./overlap";
 import { DAY } from "./util";
 
 export function viewerFrom(req: Request, db: Db): Viewer {
   const h = req.headers;
   const sp = new URL(req.url).searchParams;
-  const roleRaw = (h.get("x-role") ?? sp.get("_role") ?? "ca") as RoleKey;
-  const role: RoleKey = roleRaw in ROLES ? roleRaw : "ca";
+  const role = (h.get("x-role") ?? sp.get("_role")) as RoleKey | null;
+  // middleware.ts answers 401 before a route runs; this keeps a missing role from ever widening access
+  if (!role || !ROLE_KEYS.includes(role)) throw new Error("viewerFrom called without a valid role");
   const regionRaw = (h.get("x-region") ?? sp.get("_region")) as Region | null;
   const region: Region = regionRaw && REGIONS.includes(regionRaw) ? regionRaw : "Southern";
   const def = ROLES[role];
@@ -126,7 +127,7 @@ export function buildAlerts(db: Db, v: Viewer): Alert[] {
   const vis = visibleIds(db, v);
   const { clusters } = detectOverlaps(db);
   const instName = (id: string) => db.institutions.find((i) => i.id === id)?.name ?? id;
-  const reads = new Set(db.alertReads);
+  const reads = new Set(db.alertReads[v.role] ?? []);
   const out: Alert[] = [];
   const now = Date.now();
   for (const cl of clusters) {

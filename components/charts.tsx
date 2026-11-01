@@ -47,7 +47,7 @@ export function BarsChart({ data, x, series, stacked, height = 260, horizontal }
         <Tooltip content={<Tip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
         {series.length > 1 && <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: "#aeb6cc", paddingTop: 4 }} />}
         {series.map((s, i) => (
-          <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} stackId={stacked ? "a" : undefined} radius={stacked ? (i === series.length - 1 ? (horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]) : 0) : horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]} maxBarSize={38} />
+          <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} stackId={stacked ? "a" : undefined} radius={stacked ? (i === series.length - 1 ? (horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]) : 0) : horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]} maxBarSize={38} isAnimationActive={false} />
         ))}
       </BarChart>
     </ResponsiveContainer>
@@ -64,7 +64,7 @@ export function LinesChart({ data, x, series, height = 260 }: { data: Record<str
         <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.15)" }} />
         <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: "#aeb6cc", paddingTop: 4 }} />
         {series.map((s) => (
-          <Line key={s.key} type="monotone" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={2.2} dot={false} activeDot={{ r: 4 }} />
+          <Line key={s.key} type="monotone" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={2.2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
         ))}
       </LineChart>
     </ResponsiveContainer>

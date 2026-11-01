@@ -16,7 +16,7 @@ import { CATEGORIES } from "./types";
 import { DAY, addDays, chance, int, iso, mulberry32, pick, weighted, type Rng } from "./util";
 import { resolveInstitution } from "./resolve";
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const DEFAULT_SETTINGS: Settings = {
   slaDays: {
@@ -721,7 +721,7 @@ export function seedDb(nowMs = Date.now()): Db {
     cases,
     linkGroups: [],
     dismissedPairs: [],
-    alertReads: [],
+    alertReads: {},
     audit: [
       {
         id: "AU1",

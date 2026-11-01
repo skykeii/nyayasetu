@@ -178,7 +178,7 @@ export interface Db {
   cases: Case[];
   linkGroups: LinkGroup[];
   dismissedPairs: string[]; // "caseA|caseB"
-  alertReads: string[];
+  alertReads: Partial<Record<RoleKey, string[]>>;
   audit: AuditEntry[];
   settings: Settings;
   counters: { case: number; action: number; audit: number; group: number };
