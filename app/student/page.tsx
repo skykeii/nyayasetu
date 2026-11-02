@@ -72,7 +72,7 @@ function Tracker({ c }: { c: MyComplaint }) {
   const stage = stageOf(c);
   const steps = ["Filed", "With college", "Proof submitted", "Your verdict", c.status === "Escalated to AICTE" ? "With AICTE" : "AICTE, if needed", "Closed"];
   return (
-    <ol aria-label={`Progress: ${LABEL[c.status]}, round ${c.round}`} className="mt-3 flex flex-wrap items-center gap-x-1 gap-y-1.5 text-[11.5px]">
+    <ol aria-label={`Progress: ${LABEL[c.status]}, round ${c.round}`} className="mt-3 flex flex-wrap items-center gap-x-1 gap-y-1.5 text-[12.5px]">
       {steps.map((s, i) => {
         const skipped = i === 4 && (c.status === "Closed - Verified" || c.status === "Closed - Unverified");
         const done = i < stage || (stage === 5 && !skipped);
@@ -114,21 +114,21 @@ function ComplaintCard({ c, onDone }: { c: MyComplaint; onDone: () => void }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="text-[14.5px] font-semibold text-white">{c.subject}</div>
-          <div className="num text-[12px] text-slate-500">
+          <div className="num text-[13px] text-slate-500">
             {c.id} · {c.category} · filed {fmtDate(c.createdAt)}
           </div>
         </div>
         <Badge tone={statusTone(c.status)}>{LABEL[c.status]}</Badge>
       </div>
       <Tracker c={c} />
-      <p dir="auto" className="mt-3 text-[13.5px] leading-relaxed text-slate-300">{c.originalText}</p>
+      <p dir="auto" className="mt-3 text-[14.5px] leading-relaxed text-slate-300">{c.originalText}</p>
       {c.language !== "English" && (
-        <p className="mt-1 text-[12.5px] leading-relaxed text-slate-400">
+        <p className="mt-1 text-[13.5px] leading-relaxed text-slate-400">
           <Advisory>English translation</Advisory> {c.translatedText}
         </p>
       )}
       {withCollege && (
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px] text-slate-400">
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[13.5px] text-slate-400">
           <Badge tone={c.urgency.daysLeft < 0 ? "red" : "slate"}>
             <Clock className="h-3 w-3" /> {c.urgency.daysLeft < 0 ? `${-c.urgency.daysLeft}d overdue` : `${c.urgency.daysLeft}d left for the college`}
           </Badge>
@@ -137,27 +137,27 @@ function ComplaintCard({ c, onDone }: { c: MyComplaint; onDone: () => void }) {
           <Advisory />
         </div>
       )}
-      {withCollege && c.directions && <p className="mt-2 text-[13px] text-orange-200">AICTE returned this to your college with directions (round {c.round}): {c.directions}</p>}
-      {c.status === "Escalated to AICTE" && <p className="mt-2 text-[13px] text-orange-200">With {c.routedBureau} at AICTE{c.caseId ? ` as case ${c.caseId}` : ""}, not with your college. AICTE may close it or send it back with directions. Your identity stays masked.</p>}
+      {withCollege && c.directions && <p className="mt-2 text-[14px] text-orange-200">AICTE returned this to your college with directions (round {c.round}): {c.directions}</p>}
+      {c.status === "Escalated to AICTE" && <p className="mt-2 text-[14px] text-orange-200">With {c.routedBureau} at AICTE{c.caseId ? ` as case ${c.caseId}` : ""}, not with your college. AICTE may close it or send it back with directions. Your identity stays masked.</p>}
       {pending && c.proof && (
         <div className="mt-3 rounded-lg border border-white/[0.08] bg-white/[0.03] p-3">
-          <div className="text-[12.5px] font-medium text-slate-300">College&apos;s proof of work (round {c.round}), {fmtDateTime(c.proof.at)}</div>
-          <p className="mt-1 text-[13px] text-slate-300">{c.proof.note}</p>
+          <div className="text-[13.5px] font-medium text-slate-300">College&apos;s proof of work (round {c.round}), {fmtDateTime(c.proof.at)}</div>
+          <p className="mt-1 text-[14px] text-slate-300">{c.proof.note}</p>
           <div className="mt-1.5 flex flex-wrap gap-2">
             {c.proof.docs.map((d) =>
               d.file ? (
-                <a key={d.name} href={`/api/student/files/${d.file}`} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[12px] text-slate-200 hover:border-[var(--accent)]">
+                <a key={d.name} href={`/api/student/files/${d.file}`} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[13px] text-slate-200 hover:border-[var(--accent)]">
                   <Paperclip className="h-3 w-3" /> {d.name}
                 </a>
               ) : (
-                <span key={d.name} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 px-2 py-1 text-[12px] text-slate-400">
+                <span key={d.name} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 px-2 py-1 text-[13px] text-slate-400">
                   <Paperclip className="h-3 w-3" /> {d.name}
                 </span>
               )
             )}
           </div>
           {c.evidence && (
-            <div className="mt-2 text-[12.5px] text-slate-400">
+            <div className="mt-2 text-[13.5px] text-slate-400">
               <Advisory>evidence check{c.evidence.source === "mock" ? " (offline mock)" : ""}, not proof</Advisory> <span className="num font-semibold text-white">{c.evidence.score}/100</span> {c.evidence.verdict}. {c.evidence.explanation}
             </div>
           )}
@@ -165,9 +165,9 @@ function ComplaintCard({ c, onDone }: { c: MyComplaint; onDone: () => void }) {
       )}
       {pending && c.proof && (
         <div className="mt-3 space-y-2">
-          <div className="text-[13.5px] font-medium text-white">Was your problem actually fixed?</div>
+          <div className="text-[14.5px] font-medium text-white">Was your problem actually fixed?</div>
           {notDone && <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Say what is still wrong (required). Details stay with AICTE." className="min-h-[60px]" autoFocus />}
-          {err && <p role="alert" className="text-[13px] text-red-300">{err}</p>}
+          {err && <p role="alert" className="text-[14px] text-red-300">{err}</p>}
           <div className="flex flex-wrap items-center gap-2">
             {!notDone && (
               <Button variant="emerald" onClick={() => decide("done")} loading={busy}>
@@ -182,16 +182,16 @@ function ComplaintCard({ c, onDone }: { c: MyComplaint; onDone: () => void }) {
                 Back
               </Button>
             )}
-            <span className="text-[12px] text-slate-500">Not done goes to an AICTE officer, not your college. No response by {fmtDate(c.verifyBy)} closes this as unverified.</span>
+            <span className="text-[13px] text-slate-500">Not done goes to an AICTE officer, not your college. No response by {fmtDate(c.verifyBy)} closes this as unverified.</span>
           </div>
         </div>
       )}
-      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="mt-3 text-[12.5px] text-slate-400 underline hover:text-white">
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="mt-3 text-[13.5px] text-slate-400 underline hover:text-white">
         {open ? "Hide" : "Show"} timeline{c.reminders.length ? " and reminder log" : ""}
       </button>
       {open && (
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
-          <ol className="space-y-1 text-[12.5px] text-slate-400">
+          <ol className="space-y-1 text-[13.5px] text-slate-400">
             {[...c.actions].reverse().map((a, i) => (
               <li key={i}>
                 <span className="text-slate-200">{a.type}</span> · {fmtDateTime(a.at)}
@@ -201,8 +201,8 @@ function ComplaintCard({ c, onDone }: { c: MyComplaint; onDone: () => void }) {
           </ol>
           {c.reminders.length > 0 && (
             <div>
-              <div className="mb-1 text-[12.5px] font-medium text-slate-300">Reminders sent to your college</div>
-              <ul className="space-y-1 text-[12.5px] text-slate-400">
+              <div className="mb-1 text-[13.5px] font-medium text-slate-300">Reminders sent to your college</div>
+              <ul className="space-y-1 text-[13.5px] text-slate-400">
                 {[...c.reminders].reverse().map((r, i) => (
                   <li key={i}>
                     {fmtDateTime(r.at)}: {r.message}
@@ -219,7 +219,7 @@ function ComplaintCard({ c, onDone }: { c: MyComplaint; onDone: () => void }) {
 
 function ConsentNotice({ accepted, onChange }: { accepted: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-[12.5px] leading-relaxed text-slate-300">
+    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-[13.5px] leading-relaxed text-slate-300">
       <div className="mb-1 font-semibold text-white">Privacy notice (version {CONSENT_VERSION})</div>
       <ul className="list-disc space-y-0.5 pl-4">
         <li><b>What we collect:</b> your ID, mobile, name and roll number if held, your complaint text or voice transcript, and any photo.</li>
@@ -277,22 +277,22 @@ function NewComplaint({ onDone, me }: { onDone: () => void; me: Me }) {
     <div className="space-y-4">
       {done && (
         <Card className="border-emerald-300/30 p-4">
-          <div className="flex flex-wrap items-center gap-2 text-[14px] font-semibold text-white">
+          <div className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-white">
             <CheckCircle2 className="h-4 w-4 text-emerald-300" /> Filed as {done.id}. With your college now, awaiting a response.
             <Badge tone={urgencyTone(done.urgency.label)}>Urgency {done.urgency.score} · {done.urgency.label}</Badge>
           </div>
-          <p className="mt-1 text-[13px] text-slate-300">{done.urgency.reason}. Category: {done.category} ({done.categoryReason}). Your college sees only your pseudonym. <Advisory /></p>
+          <p className="mt-1 text-[14px] text-slate-300">{done.urgency.reason}. Category: {done.category} ({done.categoryReason}). Your college sees only your pseudonym. <Advisory /></p>
         </Card>
       )}
       <Card className="p-5">
         <VoiceIntake value={v} onChange={setV} />
         <div className="mt-3">
           <Label>Photo (optional; PNG or JPG, up to 4 MB)</Label>
-          <input type="file" accept="image/png,image/jpeg" aria-label="Photo" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="text-[13px] text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-slate-100" />
+          <input type="file" accept="image/png,image/jpeg" aria-label="Photo" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="text-[14px] text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-slate-100" />
         </div>
         {!already && <div className="mt-3"><ConsentNotice accepted={consent} onChange={setConsent} /></div>}
         {similar && (
-          <div className="mt-3 rounded-lg border border-amber-300/35 bg-amber-400/10 p-3 text-[13px] text-amber-100">
+          <div className="mt-3 rounded-lg border border-amber-300/35 bg-amber-400/10 p-3 text-[14px] text-amber-100">
             <div className="flex items-center gap-1.5 font-semibold">
               <TriangleAlert className="h-4 w-4" /> You already have a similar open complaint
             </div>
@@ -302,9 +302,9 @@ function NewComplaint({ onDone, me }: { onDone: () => void; me: Me }) {
             <Textarea value={override} onChange={(e) => setOverride(e.target.value)} placeholder="Why this is a different complaint" className="mt-2 min-h-[56px]" />
           </div>
         )}
-        {err && <p role="alert" className="mt-3 text-[13px] text-red-300">{err}</p>}
+        {err && <p role="alert" className="mt-3 text-[14px] text-red-300">{err}</p>}
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <span className="text-[12.5px] text-slate-500">
+          <span className="text-[13.5px] text-slate-500">
             {me.limits.open} of {me.limits.openComplaints} open complaints used
           </span>
           <Button variant="primary" onClick={submit} loading={busy} disabled={v.text.trim().length < 15 || !consent || (!!similar && override.trim().length < 5)}>
@@ -335,8 +335,8 @@ function Profile({ me, onDone }: { me: Me; onDone: () => void }) {
     <Card className="space-y-4 p-5">
       <div>
         <h2 className="text-[15px] font-semibold text-white">Your details</h2>
-        <p className="text-[12.5px] text-slate-400">Encrypted at rest. Your college never sees these.</p>
-        <dl className="mt-2 grid gap-x-6 gap-y-1 text-[13px] sm:grid-cols-2">
+        <p className="text-[13.5px] text-slate-400">Encrypted at rest. Your college never sees these.</p>
+        <dl className="mt-2 grid gap-x-6 gap-y-1 text-[14px] sm:grid-cols-2">
           {[["Name", me.student.name], ["Mobile", me.student.mobile], ["Roll number", me.student.rollNo], ["Student ID", me.student.apaarId], ["Pseudonym", me.student.pseudonym], ["College", me.student.institution]].map(([k, v]) => (
             <div key={k}>
               <dt className="inline text-slate-500">{k}: </dt>
@@ -348,7 +348,7 @@ function Profile({ me, onDone }: { me: Me; onDone: () => void }) {
       <div>
         <h2 className="text-[15px] font-semibold text-white">Consent record</h2>
         {me.consent.records.length ? (
-          <ul className="mt-1 text-[13px] text-slate-300">
+          <ul className="mt-1 text-[14px] text-slate-300">
             {me.consent.records.map((r) => (
               <li key={r.version}>
                 Version {r.version}, accepted {fmtDateTime(r.at)}
@@ -356,15 +356,15 @@ function Profile({ me, onDone }: { me: Me; onDone: () => void }) {
             ))}
           </ul>
         ) : (
-          <p className="mt-1 text-[13px] text-slate-400">No consent recorded yet. You accept the notice when you file your first complaint.</p>
+          <p className="mt-1 text-[14px] text-slate-400">No consent recorded yet. You accept the notice when you file your first complaint.</p>
         )}
       </div>
       <div>
         <h2 className="text-[15px] font-semibold text-white">Request deletion</h2>
-        <p className="mt-1 text-[13px] text-slate-400">This logs a request for the AICTE desk, which will review it. Open complaints may need to stay on record until they close.</p>
-        {err && <p role="alert" className="mt-1 text-[13px] text-red-300">{err}</p>}
+        <p className="mt-1 text-[14px] text-slate-400">This logs a request for the AICTE desk, which will review it. Open complaints may need to stay on record until they close.</p>
+        {err && <p role="alert" className="mt-1 text-[14px] text-red-300">{err}</p>}
         {me.consent.deletionRequestedAt ? (
-          <p className="mt-2 text-[13px] text-emerald-200">Requested {fmtDateTime(me.consent.deletionRequestedAt)}. The AICTE desk has it.</p>
+          <p className="mt-2 text-[14px] text-emerald-200">Requested {fmtDateTime(me.consent.deletionRequestedAt)}. The AICTE desk has it.</p>
         ) : (
           <Button variant="danger" size="sm" className="mt-2" onClick={request} loading={busy}>
             Request deletion
@@ -382,17 +382,17 @@ function NotificationBell({ me }: { me: Me }) {
     <div className="relative">
       <button aria-label="Notifications" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] hover:bg-white/[0.07]">
         <Bell className="h-4 w-4 text-slate-200" />
-        {waiting > 0 && <span className="num absolute -right-1.5 -top-1.5 min-w-[18px] rounded-full bg-red-500 px-1 text-center text-[11px] font-bold leading-[18px] text-white">{waiting}</span>}
+        {waiting > 0 && <span className="num absolute -right-1.5 -top-1.5 min-w-[18px] rounded-full bg-red-500 px-1 text-center text-[12px] font-bold leading-[18px] text-paper">{waiting}</span>}
       </button>
       {open && (
         <div className="glass-strong absolute right-0 top-11 z-50 w-[320px] max-w-[calc(100vw-2rem)] rounded-xl p-2 shadow-2xl">
-          {me.notifications.length === 0 && <div className="p-3 text-[13px] text-slate-400">No updates yet.</div>}
+          {me.notifications.length === 0 && <div className="p-3 text-[14px] text-slate-400">No updates yet.</div>}
           <ul className="scroll-thin max-h-80 overflow-y-auto">
             {me.notifications.map((n, i) => (
-              <li key={i} className="rounded-lg px-2.5 py-2 text-[12.5px] hover:bg-white/[0.05]">
+              <li key={i} className="rounded-lg px-2.5 py-2 text-[13.5px] hover:bg-white/[0.05]">
                 <div className="font-medium text-white">{n.title}</div>
                 <div className="truncate text-slate-400">{n.complaintId}: {n.subject}</div>
-                <div className="text-[11.5px] text-slate-500">{fmtDateTime(n.at)}</div>
+                <div className="text-[12.5px] text-slate-500">{fmtDateTime(n.at)}</div>
               </li>
             ))}
           </ul>
@@ -412,7 +412,7 @@ export default function StudentPortal() {
   React.useEffect(load, [load]);
   const waiting = me?.complaints.filter((c) => c.status === "Resolved - Pending Verification") ?? [];
   return (
-    <div className="mx-auto min-h-screen max-w-[860px] px-4 pb-16 pt-6" style={{ "--accent": "#F472B6" } as React.CSSProperties}>
+    <div className="mx-auto min-h-screen max-w-[860px] px-4 pb-16 pt-6" style={{ "--accent": "#9A3D4A" } as React.CSSProperties}>
       <header className="mb-5 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05]">
@@ -420,7 +420,7 @@ export default function StudentPortal() {
           </span>
           <div className="min-w-0">
             <h1 className="text-[20px] font-bold tracking-tight text-white">NyayaSetu student portal</h1>
-            <p className="text-[12.5px] text-slate-400">Your college sees a pseudonym, never your name, phone or roll number.</p>
+            <p className="text-[13.5px] text-slate-400">Your college sees a pseudonym, never your name, phone or roll number.</p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -438,14 +438,14 @@ export default function StudentPortal() {
             <CardHeader
               title={
                 <span className="flex items-center gap-2">
-                  {me.student.pseudonym} <span className="rounded border border-[var(--accent)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--accent)]">Student</span>
+                  {me.student.pseudonym} <span className="rounded border border-[var(--accent)] px-1.5 py-0.5 text-[12px] font-medium text-[var(--accent)]">Student</span>
                 </span>
               }
               sub={me.student.institution}
             />
           </Card>
           {waiting.length > 0 && (
-            <button onClick={() => setTab("mine")} className="flex w-full items-center gap-2 rounded-xl border border-sky-300/40 bg-sky-400/10 px-4 py-3 text-left text-[14px] font-medium text-sky-100">
+            <button onClick={() => setTab("mine")} className="flex w-full items-center gap-2 rounded-xl border border-sky-300/40 bg-sky-400/10 px-4 py-3 text-left text-[15px] font-medium text-sky-100">
               <ShieldCheck className="h-5 w-5 shrink-0" /> Needs your verdict: {waiting.length} complaint{waiting.length === 1 ? " has" : "s have"} new proof from your college.
             </button>
           )}
@@ -472,7 +472,7 @@ export default function StudentPortal() {
           {tab === "profile" && <Profile me={me} onDone={load} />}
         </div>
       )}
-      <footer className="mt-8 text-center text-[12px] text-slate-500">
+      <footer className="mt-8 text-center text-[13px] text-slate-500">
         <span className="rounded border border-amber-300/40 bg-amber-400/10 px-1.5 py-0.5 font-semibold text-amber-200">Synthetic demo data</span> Not connected to any AICTE system. Machine output is advisory.{" "}
         <Link href="/security" className="underline hover:text-white">
           Security &amp; Privacy

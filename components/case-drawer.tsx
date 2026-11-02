@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { useApi, useRole } from "./role-provider";
 import { Advisory, Badge, Button, Input, Label, Select, Skeleton, Textarea, cn } from "./ui";
+import { JourneyLine } from "./journey";
+import { OverlapBridge } from "./overlap-bridge";
 import { BureauChip, Confidence, ErrorNote, OverlapPulse, SeverityDot, SlaBadge, StatusBadge } from "./bits";
 import type { CaseView } from "@/lib/server";
 import type { CaseAction, Institution, LinkGroup } from "@/lib/types";
@@ -68,8 +70,8 @@ const ICON_TONE: Partial<Record<CaseAction["type"], string>> = {
 export function Fact({ k, v, className }: { k: string; v: React.ReactNode; className?: string }) {
   return (
     <div className={className}>
-      <div className="text-[12px] text-slate-500">{k}</div>
-      <div className="mt-0.5 text-[13.5px] text-slate-100">{v}</div>
+      <div className="text-[13px] text-slate-500">{k}</div>
+      <div className="mt-0.5 text-[14.5px] text-slate-100">{v}</div>
     </div>
   );
 }
@@ -84,12 +86,12 @@ export function CaseDrawer({ id, onClose }: { id: string | null; onClose: () => 
     <AnimatePresence>
       {id && (
         <>
-          <motion.div key="bg" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+          <motion.div key="bg" className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[3px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.aside
             key="panel"
             role="dialog"
             aria-label={`Case ${id}`}
-            className="glass-strong scroll-thin fixed bottom-0 right-0 top-0 z-50 w-full max-w-[760px] overflow-y-auto border-y-0 border-r-0"
+            className="glass-strong scroll-thin fixed bottom-0 right-0 top-0 z-50 w-full max-w-[780px] overflow-y-auto rounded-l-[24px] border-y-0 border-r-0 bg-[#FBF7EF]"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -118,13 +120,13 @@ function CaseBrief({ caseId }: { caseId: string }) {
     }
   };
   return (
-    <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
+    <section className="rounded-2xl border border-[#EADFCD] bg-[#FBF6EC] p-3">
       {out ? (
         <>
           <div className="mb-1">
             <Advisory>{out.source === "groq" ? "AI case brief" : "offline summary, AI unavailable"}</Advisory>
           </div>
-          <p className="text-[13.5px] leading-relaxed text-slate-200">{out.brief}</p>
+          <p className="text-[14.5px] leading-relaxed text-slate-200">{out.brief}</p>
         </>
       ) : (
         <Button size="sm" variant="secondary" onClick={run} loading={busy}>
@@ -160,10 +162,10 @@ function RoutingCard({ caseId, bureau, routing, onDone }: { caseId: string; bure
   };
   return (
     <section className={cn("rounded-xl border p-4", routing.caution ? "border-violet-300/35 bg-violet-500/[0.07]" : "border-sky-300/25 bg-sky-400/[0.05]")}>
-      <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[14px] font-semibold text-white">
+      <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[15px] font-semibold text-white">
         Routing suggestion: {elsewhere ? `transfer to ${routing.bureau}` : officer?.name} <Advisory />
       </div>
-      <ul className="mb-3 list-disc space-y-0.5 pl-5 text-[13px] text-slate-300">
+      <ul className="mb-3 list-disc space-y-0.5 pl-5 text-[14px] text-slate-300">
         {routing.why.map((w) => (
           <li key={w}>{w}</li>
         ))}
@@ -201,11 +203,11 @@ function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
   const actions = [...(c.actions ?? [])].reverse();
   return (
     <div>
-      <div className="sticky top-0 z-10 border-b border-white/10 bg-[#0E1427]/95 px-6 py-4 backdrop-blur">
+      <div className="sticky top-0 z-10 border-b border-white/10 bg-[#FFFCF5]/95 px-6 py-5 backdrop-blur">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="num text-xl font-bold tracking-tight text-white">{c.id}</h2>
+              <h2 className="num text-[26px] leading-tight text-white">{c.id}</h2>
               <StatusBadge status={c.status} />
               <SlaBadge sla={c.sla} />
               {c.overlapClusters.some((o) => o.status === "Open") && (
@@ -214,8 +216,8 @@ function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
                 </Badge>
               )}
             </div>
-            <div className="mt-1 truncate text-[13.5px] text-slate-300">{c.subject}</div>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-[12.5px] text-slate-500">
+            <div className="mt-1 truncate text-[14.5px] text-slate-300">{c.subject}</div>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-[13.5px] text-slate-500">
               <BureauChip code={c.bureau} /> <span className="num">{c.reference}</span>
             </div>
           </div>
@@ -226,34 +228,38 @@ function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
       </div>
 
       <div className="space-y-5 px-6 py-5">
+        <section className="rounded-2xl border border-[#EADFCD] bg-paper px-2 pb-4 pt-5 shadow-[0_1px_2px_rgba(60,40,20,0.05)]">
+          <h3 className="mb-3 px-4 text-[17px] text-white">Where this complaint is</h3>
+          <JourneyLine journey={c.journey} sla={c.sla} size="lg" />
+        </section>
         {data.related.length > 0 && <OverlapCallout data={data} onDone={reload} />}
 
-        <section className="grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 sm:grid-cols-3">
+        <section className="grid grid-cols-2 gap-x-6 gap-y-4 rounded-2xl border border-[#EADFCD] bg-[#FBF6EC] p-4 sm:grid-cols-3">
           <Fact k="Date received" v={fmtDate(c.dateReceived)} />
           <Fact k="Category" v={c.category} />
           <Fact k="Severity" v={<SeverityDot s={c.severity} />} />
           <Fact k="Assigned bureau / cell" v={c.bureauName} />
-          <Fact k="Assigned officer" v={<span>{c.officerName}<span className="block text-[12px] text-slate-500">{c.officerDesignation}</span></span>} />
+          <Fact k="Assigned officer" v={<span>{c.officerName}<span className="block text-[13px] text-slate-500">{c.officerDesignation}</span></span>} />
           <Fact k="Expected disposal" v={<span className={cn(c.sla.state === "breached" && "text-red-300")}>{fmtDate(c.expectedDisposalDate)}</span>} />
           <Fact k="Date of last action" v={fmtDateTime(c.lastActionDate)} />
           <Fact k="Last action" v={<span className="line-clamp-2">{c.lastAction}</span>} className="col-span-2" />
           <Fact k="Next action required" v={<span className="font-medium text-saffron-300">{c.nextAction}</span>} className="col-span-2 sm:col-span-3" />
         </section>
 
-        <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
+        <section className="rounded-2xl border border-[#EADFCD] bg-[#FBF6EC] p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[12px] text-slate-500">Institution (master record)</div>
+              <div className="text-[13px] text-slate-500">Institution (master record)</div>
               <Link href={`/institutions/${data.institution.id}`} className="text-[15px] font-semibold text-white hover:text-saffron">
                 {data.institution.name}
               </Link>
-              <div className="num text-[12.5px] text-slate-400">
+              <div className="num text-[13.5px] text-slate-400">
                 {data.institution.id} · {data.institution.city}, {data.institution.state} · {data.institution.region} region
               </div>
             </div>
             <Confidence value={c.matchConfidence} />
           </div>
-          <div className="mt-3 rounded-lg bg-white/[0.03] px-3 py-2 text-[12.5px] text-slate-400">
+          <div className="mt-3 rounded-lg bg-white/[0.03] px-3 py-2 text-[13.5px] text-slate-400">
             Complainant wrote <span className="text-slate-200">“{c.reportedName}”</span>
             {c.reportedPid ? (
               <>
@@ -269,18 +275,18 @@ function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
         </section>
 
         <section>
-          <h3 className="mb-2 text-[14px] font-semibold text-white">Complaint</h3>
-          <p className="max-w-[72ch] text-[14px] leading-relaxed text-slate-200">{c.description}</p>
+          <h3 className="mb-2 text-[18px] text-white">Complaint</h3>
+          <p className="max-w-[72ch] text-[15px] leading-relaxed text-slate-200">{c.description}</p>
           {c.originalText && (
-            <div className="mt-3 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2">
-              <div className="mb-1 flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
+            <div className="mt-3 rounded-lg border border-[#EADFCD] bg-[#FBF6EC] px-3 py-2">
+              <div className="mb-1 flex flex-wrap items-center gap-2 text-[13px] text-slate-500">
                 Original ({c.language}) <Advisory>English above is machine-translated ({c.translationSource})</Advisory>
               </div>
-              <p className="max-w-[72ch] text-[13.5px] leading-relaxed text-slate-300">{c.originalText}</p>
+              <p className="max-w-[72ch] text-[14.5px] leading-relaxed text-slate-300">{c.originalText}</p>
             </div>
           )}
           {c.studentComplaintId && (
-            <div className="mt-2 text-[12.5px] text-slate-400">
+            <div className="mt-2 text-[13.5px] text-slate-400">
               Escalated from student complaint{" "}
               <Link href={`/grievances?open=${c.studentComplaintId}`} className="num text-saffron hover:underline">
                 {c.studentComplaintId}
@@ -288,7 +294,7 @@ function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
               . Identity is masked; only the Competent Authority can reveal it.
             </div>
           )}
-          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-[12.5px] text-slate-400">
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-[13.5px] text-slate-400">
             <span>
               Complainant: <span className="text-slate-200">{c.complainantName}</span> ({c.complainantType})
               {c.complainantContact && <span className="text-slate-300"> · {c.complainantContact}</span>}
@@ -305,37 +311,37 @@ function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
         {(data.permissions.remark || data.permissions.act) && <ActionPanel data={data} onDone={reload} />}
 
         <section>
-          <h3 className="mb-3 text-[14px] font-semibold text-white">Workflow and action history</h3>
+          <h3 className="mb-3 text-[18px] text-white">Workflow and action history</h3>
           <ol className="relative ml-3 border-l border-white/10">
             {actions.map((a) => {
               const I = ICON[a.type] ?? CircleDot;
               return (
                 <li key={a.id} className="mb-4 ml-6">
-                  <span className={cn("absolute -left-[13px] flex h-[26px] w-[26px] items-center justify-center rounded-full border bg-[#0E1427]", ICON_TONE[a.type] ?? "border-white/15 text-slate-300")}>
+                  <span className={cn("absolute -left-[13px] flex h-[26px] w-[26px] items-center justify-center rounded-full border bg-[#FFFCF5]", ICON_TONE[a.type] ?? "border-white/15 text-slate-300")}>
                     <I className="h-3.5 w-3.5" />
                   </span>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="text-[13.5px] font-semibold text-white">{a.type}</span>
+                    <span className="text-[14.5px] font-semibold text-white">{a.type}</span>
                     {a.from && a.to && (
-                      <span className="inline-flex items-center gap-1 text-[12px] text-slate-400">
+                      <span className="inline-flex items-center gap-1 text-[13px] text-slate-400">
                         <BureauChip code={a.from} /> <ArrowRightLeft className="h-3 w-3" /> {a.to.length <= 5 ? <BureauChip code={a.to} /> : a.to}
                       </span>
                     )}
-                    <span className="text-[12px] text-slate-500">{fmtDateTime(a.at)}</span>
+                    <span className="text-[13px] text-slate-500">{fmtDateTime(a.at)}</span>
                   </div>
-                  <div className="text-[12.5px] text-slate-400">
+                  <div className="text-[13.5px] text-slate-400">
                     {a.by} · <BureauChip code={a.bureau} className="h-4 text-[10px]" />
                   </div>
-                  <p className="mt-1 max-w-[70ch] text-[13px] leading-relaxed text-slate-300">{a.remarks}</p>
+                  <p className="mt-1 max-w-[70ch] text-[14px] leading-relaxed text-slate-300">{a.remarks}</p>
                   {a.docs && a.docs.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap gap-2">
                       {a.docs.map((d) =>
                         d.file ? (
-                          <a key={d.name} href={`/api/files/${d.file}`} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[12px] text-slate-200 hover:border-saffron/50">
+                          <a key={d.name} href={`/api/files/${d.file}`} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[13px] text-slate-200 hover:border-saffron/50">
                             <Paperclip className="h-3 w-3" /> {d.name} <span className="text-slate-500">{Math.round(d.size / 1024)} KB</span>
                           </a>
                         ) : (
-                          <span key={d.name} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[12px] text-slate-400" title="Seeded record; file held in e-Office">
+                          <span key={d.name} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[13px] text-slate-400" title="Seeded record; file held in e-Office">
                             <FileText className="h-3 w-3" /> {d.name} <span className="text-slate-500">{Math.round(d.size / 1024)} KB</span>
                           </span>
                         )
@@ -350,10 +356,10 @@ function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
 
         {data.history.length > 0 && (
           <section>
-            <h3 className="mb-2 text-[14px] font-semibold text-white">Other complaints on this institution</h3>
-            <div className="divide-y divide-white/[0.06] rounded-xl border border-white/[0.07]">
+            <h3 className="mb-2 text-[18px] text-white">Other complaints on this institution</h3>
+            <div className="divide-y divide-white/[0.06] rounded-2xl border border-[#EADFCD]">
               {data.history.map((h) => (
-                <div key={h.id} className="flex items-center gap-3 px-3 py-2 text-[13px]">
+                <div key={h.id} className="flex items-center gap-3 px-3 py-2 text-[14px]">
                   <span className="num w-28 shrink-0 text-slate-300">{h.id}</span>
                   <BureauChip code={h.bureau} />
                   <span className="min-w-0 flex-1 truncate text-slate-400">{h.subject}</span>
@@ -377,37 +383,39 @@ function OverlapCallout({ data, onDone }: { data: Detail; onDone: () => void }) 
   return (
     <section className="space-y-3">
       {data.related.map((cl) => (
-        <div key={cl.id} className={cn("rounded-xl border p-4", cl.status === "Open" ? "border-violet-400/40 bg-violet-500/[0.07]" : "border-white/10 bg-white/[0.02]")}>
+        <div key={cl.id} className={cn("rounded-2xl border p-4", cl.status === "Open" ? "border-violet-400/35 bg-violet-500/[0.05]" : "border-[#EADFCD] bg-[#FBF6EC]")}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               {cl.status === "Open" ? <OverlapPulse /> : <Handshake className="h-4 w-4 text-emerald-300" />}
-              <span className="text-[14px] font-semibold text-white">{cl.kind === "cross-bureau" ? "Potential Overlapping Cases – Coordination Required" : "Possible duplicate registration"}</span>
+              <span className="text-[15px] font-semibold text-white">{cl.kind === "cross-bureau" ? (cl.status === "Open" ? "Potential Overlapping Cases – Coordination Required" : "Also reported to another unit") : "Possible duplicate registration"}</span>
             </div>
             <div className="flex items-center gap-2">
               <Badge tone={cl.status === "Open" ? "violet" : cl.status === "Coordinated" ? "emerald" : "indigo"}>{cl.status}</Badge>
               <Confidence value={cl.confidence} />
             </div>
           </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className="mt-4">
+            <OverlapBridge cases={cl.cases} pairs={cl.pairs} status={cl.status} current={c.id} compact />
+          </div>
+          <ul className="mt-3 space-y-2">
             {cl.cases
               .filter((x) => x.id !== c.id)
               .map((x) => (
-                <div key={x.id} className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-                  <div className="flex items-center gap-2">
+                <li key={x.id} className="rounded-xl border border-[#EADFCD] bg-paper px-3 py-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <BureauChip code={x.bureau} />
-                    <span className="num text-[13px] font-semibold text-white">{x.id}</span>
+                    <span className="num text-[13.5px] font-semibold text-white">{x.id}</span>
                     <StatusBadge status={x.status as never} />
                   </div>
-                  <div className="mt-1 truncate text-[12.5px] text-slate-300">{x.subject}</div>
-                  <div className="truncate text-[12px] text-slate-500">
+                  <div className="num mt-1 truncate text-[13px] text-slate-400">
                     {x.reference} · “{x.reportedName}”
                   </div>
-                </div>
+                </li>
               ))}
-          </div>
+          </ul>
           <details className="mt-3 group">
-            <summary className="cursor-pointer text-[12.5px] text-violet-200 hover:text-white">Why the engine flagged this</summary>
-            <ul className="mt-2 space-y-1 text-[12.5px] text-slate-300">
+            <summary className="cursor-pointer text-[13.5px] text-violet-200 hover:text-white">Why the engine flagged this</summary>
+            <ul className="mt-2 space-y-1 text-[13.5px] text-slate-300">
               {[...new Set(cl.pairs.filter((p) => p.a === c.id || p.b === c.id).flatMap((p) => p.reasons))].map((r) => (
                 <li key={r} className="flex gap-2">
                   <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-violet-300" />
@@ -534,8 +542,8 @@ function ActionPanel({ data, onDone }: { data: Detail; onDone: () => void }) {
     <form onSubmit={submit} className="rounded-xl border border-saffron/25 bg-saffron/[0.04] p-4">
       <div className="mb-3 flex items-center gap-2">
         <ShieldAlert className="h-4 w-4 text-saffron" />
-        <h3 className="text-[14px] font-semibold text-white">Record a decision</h3>
-        <span className="text-[12px] text-slate-400">Logged to the case timeline and audit trail under your name.</span>
+        <h3 className="text-[15px] font-semibold text-white">Record a decision</h3>
+        <span className="text-[13px] text-slate-400">Logged to the case timeline and audit trail under your name.</span>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
@@ -572,7 +580,7 @@ function ActionPanel({ data, onDone }: { data: Detail; onDone: () => void }) {
         {kind !== "Link" && (
           <div className={kind === "Transfer" ? "sm:col-span-2" : ""}>
             <Label>Supporting documents</Label>
-            <input ref={fileRef} type="file" multiple className="block w-full text-[13px] text-slate-400 file:mr-3 file:h-10 file:rounded-lg file:border-0 file:bg-white/[0.08] file:px-3 file:text-slate-100 hover:file:bg-white/[0.12]" />
+            <input ref={fileRef} type="file" multiple className="block w-full text-[14px] text-slate-400 file:mr-3 file:h-10 file:rounded-lg file:border-0 file:bg-white/[0.08] file:px-3 file:text-slate-100 hover:file:bg-white/[0.12]" />
           </div>
         )}
         <div className="sm:col-span-2">

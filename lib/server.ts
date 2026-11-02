@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { journeyOf } from "./journey";
 import type { BureauCode, Case, Db } from "./types";
 import { BUREAUS } from "./types";
 import { ROLES, ROLE_KEYS, type Viewer } from "./roles";
@@ -88,6 +89,7 @@ export function decorate(db: Db, c: Case, clusters: OverlapCluster[], opts: { fu
     officerDesignation: off?.designation,
     bureauName: BUREAUS.find((b) => b.code === c.bureau)?.name,
     sla,
+    journey: journeyOf(c.actions, c.status),
     overlapClusters: cl.map((x) => ({ id: x.id, kind: x.kind, status: x.status, confidence: x.confidence })),
     readOnly: opts.v ? !isOwnCase(opts.v, c) : false,
   };

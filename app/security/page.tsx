@@ -24,7 +24,7 @@ function Block({ title, items }: { title: string; items: string[] }) {
   return (
     <section className="glass rounded-2xl p-5">
       <h2 className="text-[16px] font-semibold text-white">{title}</h2>
-      <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[14px] leading-relaxed text-slate-300">
+      <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[15px] leading-relaxed text-slate-300">
         {items.map((i) => (
           <li key={i}>{i}</li>
         ))}
@@ -36,12 +36,12 @@ function Block({ title, items }: { title: string; items: string[] }) {
 export default function SecurityPage() {
   return (
     <main className="mx-auto max-w-[820px] space-y-4 px-4 py-8">
-      <Link href="/" className="inline-flex items-center gap-1.5 text-[13px] text-slate-400 hover:text-white">
+      <Link href="/" className="inline-flex items-center gap-1.5 text-[14px] text-slate-400 hover:text-white">
         <ArrowLeft className="h-4 w-4" /> Back
       </Link>
       <div>
-        <h1 className="text-[26px] font-bold tracking-tight text-white">Security &amp; Privacy</h1>
-        <p className="text-[14px] text-slate-400">NyayaSetu is a demo on synthetic data, not connected to any AICTE system and not certified for real complaints. This page separates what is built from what is simulated.</p>
+        <h1 className="text-[34px] leading-[1.1] tracking-tight text-white">Security &amp; Privacy</h1>
+        <p className="text-[15px] text-slate-400">NyayaSetu is a demo on synthetic data, not connected to any AICTE system and not certified for real complaints. This page separates what is built from what is simulated.</p>
       </div>
       <Block title="Implemented" items={IMPLEMENTED} />
       <Block title="Mocked for the demo" items={MOCKED} />

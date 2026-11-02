@@ -78,8 +78,8 @@ export function OverlapGraph({ clusters, cases, onOpen }: { clusters: OverlapClu
           const lit = hover === e.a || hover === e.b;
           return (
             <g key={`${e.a}-${e.b}`}>
-              <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={lit ? "#c4b5fd" : "rgba(167,139,250,0.5)"} strokeWidth={lit ? 2.5 : 1.5} />
-              <text x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 5} textAnchor="middle" fontSize={11} fill="#8b93ab">
+              <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={lit ? "#6A3254" : "rgba(156,78,124,0.45)"} strokeWidth={lit ? 2.5 : 1.5} />
+              <text x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 5} textAnchor="middle" fontSize={11} fill="#74655A">
                 {Math.round(e.confidence * 100)}%
               </text>
             </g>
@@ -104,17 +104,17 @@ export function OverlapGraph({ clusters, cases, onOpen }: { clusters: OverlapClu
               }
             }}
           >
-            <circle cx={n.x} cy={n.y} r={hover === n.id ? 16 : 14} fill={bureauHex[n.bureau] ?? "#8b93ab"} stroke="#0A0F1E" strokeWidth={2} />
-            <text x={n.x} y={n.y + 3.5} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="#0A0F1E">
+            <circle cx={n.x} cy={n.y} r={hover === n.id ? 16 : 14} fill={bureauHex[n.bureau] ?? "#74655A"} stroke="#FFFCF5" strokeWidth={2} />
+            <text x={n.x} y={n.y + 3.5} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="#FFFCF5">
               {n.bureau}
             </text>
-            <text x={n.x} y={n.y + 28} textAnchor="middle" fontSize={11} fill="#aeb6cc" style={{ fontVariantNumeric: "tabular-nums" }}>
+            <text x={n.x} y={n.y + 28} textAnchor="middle" fontSize={11} fill="#4F4338" style={{ fontVariantNumeric: "tabular-nums" }}>
               {n.id.slice(-5)}
             </text>
           </g>
         ))}
       </svg>
-      <div className="flex min-h-[20px] flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-slate-400">
+      <div className="flex min-h-[20px] flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-slate-400">
         {bureaus.map((b) => (
           <span key={b} className="inline-flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: bureauHex[b] }} /> {b}

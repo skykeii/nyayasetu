@@ -51,9 +51,9 @@ function Toaster({ items, dismiss }: { items: (Toast & { id: number })[]; dismis
               {t.tone === "violet" && <OverlapPulse className="mt-1.5 shrink-0" />}
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-white">{t.title}</div>
-                {t.body && <div className="mt-0.5 text-[13px] text-slate-300">{t.body}</div>}
+                {t.body && <div className="mt-0.5 text-[14px] text-slate-300">{t.body}</div>}
                 {t.href && (
-                  <Link href={t.href} className="mt-1 inline-block text-[13px] font-medium text-saffron hover:underline" onClick={() => dismiss(t.id)}>
+                  <Link href={t.href} className="mt-1 inline-block text-[14px] font-medium text-saffron hover:underline" onClick={() => dismiss(t.id)}>
                     Review now
                   </Link>
                 )}
@@ -95,7 +95,7 @@ function OfficerShell({ children }: { children: React.ReactNode }) {
           <Topbar />
           <StorageBanner />
           <main className="flex-1 px-4 pb-20 pt-5 md:px-6 xl:px-8">{children}</main>
-          <footer className="no-print fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between gap-3 border-t border-white/[0.06] bg-[#0A0F1E]/85 px-4 py-2 text-[12px] text-slate-400 backdrop-blur md:pl-[84px] lg:pl-[256px]">
+          <footer className="no-print fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between gap-3 border-t border-[#E2D6C3] bg-[#F1E8D8]/90 px-4 py-2 text-[13px] text-slate-400 backdrop-blur md:pl-[84px] lg:pl-[256px]">
             <span className="inline-flex items-center gap-2">
               <span className="rounded border border-amber-300/40 bg-amber-400/10 px-1.5 py-0.5 font-semibold text-amber-200">Synthetic demo data</span>
               <span className="hidden sm:inline">Fictional institutions and complainants. Not connected to any AICTE system.</span>
@@ -119,7 +119,7 @@ function OfficerShell({ children }: { children: React.ReactNode }) {
 function StorageBanner() {
   const { meta } = useRole();
   if (meta.storage !== "memory") return null;
-  return <div className="no-print border-b border-amber-300/30 bg-amber-400/10 px-6 py-1.5 text-center text-[12.5px] font-medium text-amber-100">Demo data resets on restart: no database is configured for this deployment.</div>;
+  return <div className="no-print border-b border-amber-300/30 bg-amber-400/10 px-6 py-1.5 text-center text-[13.5px] font-medium text-amber-100">Demo data resets on restart: no database is configured for this deployment.</div>;
 }
 
 function Sidebar() {
@@ -128,12 +128,12 @@ function Sidebar() {
   const { data } = useApi<{ unread: number; counts: Record<string, number> }>("/api/alerts?limit=1", { interval: 5000 });
   const allowed = ROLES[role].nav;
   return (
-    <aside className="no-print sticky top-0 z-40 hidden h-screen w-[68px] shrink-0 flex-col border-r border-white/[0.06] bg-[#0A0F1E]/70 backdrop-blur-xl md:flex lg:w-60">
+    <aside className="no-print sticky top-0 z-40 hidden h-screen w-[68px] shrink-0 flex-col border-r border-[#E2D6C3] bg-[#F1E8D8]/85 backdrop-blur-xl md:flex lg:w-60">
       <Link href={allowed[0]} className="flex items-center gap-3 px-4 pb-5 pt-5">
         <BridgeMark className="h-9 w-9 shrink-0" />
         <div className="hidden min-w-0 lg:block">
-          <div className="text-[17px] font-bold tracking-tight text-white">NyayaSetu</div>
-          <div className="truncate text-[11.5px] leading-tight text-slate-400">One window for every institution complaint</div>
+          <div className="font-display text-[22px] font-semibold leading-none tracking-tight text-white">NyayaSetu</div>
+          <div className="truncate text-[12.5px] leading-tight text-slate-400">One window for every institution complaint</div>
         </div>
       </Link>
       <nav className="flex flex-1 flex-col gap-0.5 px-2.5">
@@ -146,22 +146,22 @@ function Sidebar() {
               href={n.href}
               title={n.label}
               className={cn(
-                "group relative flex h-10 items-center gap-3 rounded-lg px-3 text-[14px] transition-colors",
-                active ? "bg-white/[0.07] text-white" : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-100"
+                "group relative flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors",
+                active ? "bg-paper text-white shadow-[0_1px_3px_rgba(60,40,20,0.1)]" : "text-slate-300 hover:bg-paper/60 hover:text-white"
               )}
             >
               {active && <motion.span layoutId="navbar" className="absolute left-0 top-2 h-6 w-[3px] rounded-r bg-[var(--accent)]" />}
               <n.icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-[var(--accent)]")} />
               <span className="hidden lg:inline">{n.label}</span>
               {!!badge && (
-                <span className={cn("num ml-auto hidden rounded-full px-1.5 text-[11px] font-semibold lg:inline", n.href === "/overlaps" ? "bg-violet-500/25 text-violet-200" : "bg-red-500/20 text-red-200")}>{badge}</span>
+                <span className={cn("num ml-auto hidden rounded-full px-1.5 text-[12px] font-semibold lg:inline", n.href === "/overlaps" ? "bg-violet-500 text-paper" : "bg-red-500 text-paper")}>{badge}</span>
               )}
               {!!badge && <span className={cn("absolute right-2 top-2 h-1.5 w-1.5 rounded-full lg:hidden", n.href === "/overlaps" ? "bg-violet-400" : "bg-red-400")} />}
             </Link>
           );
         })}
       </nav>
-      <div className="hidden px-4 pb-14 text-[11.5px] leading-relaxed text-slate-500 lg:block">
+      <div className="hidden px-4 pb-14 text-[12.5px] leading-relaxed text-slate-500 lg:block">
         SIH 2026 · PS SIH26264
         <br />
         AICTE, Ministry of Education
@@ -182,11 +182,11 @@ function UserMenu() {
   const def = ROLES[role];
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen((o) => !o)} className="flex h-10 items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.04] pl-2 pr-2.5 text-left hover:bg-white/[0.07]" aria-expanded={open} aria-label="Account menu">
+      <button onClick={() => setOpen((o) => !o)} className="flex h-10 items-center gap-2.5 rounded-full border border-[#DDD0BB] bg-paper pl-1.5 pr-3 text-left hover:bg-[#FBF4E8]" aria-expanded={open} aria-label="Account menu">
         <UserCircle2 className="h-6 w-6" style={{ color: def.accent }} />
         <span className="hidden min-w-0 sm:block">
-          <span className="block max-w-[180px] truncate text-[13px] font-medium leading-tight text-white">{meta.viewer.officerName}</span>
-          <span className="block max-w-[180px] truncate text-[11.5px] leading-tight" style={{ color: def.accent }}>
+          <span className="block max-w-[180px] truncate text-[14px] font-medium leading-tight text-white">{meta.viewer.officerName}</span>
+          <span className="block max-w-[180px] truncate text-[12.5px] leading-tight" style={{ color: def.accent }}>
             {def.badge}
           </span>
         </span>
@@ -195,12 +195,12 @@ function UserMenu() {
       <AnimatePresence>
         {open && (
           <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="glass-strong absolute right-0 top-12 z-50 w-72 rounded-xl p-4 shadow-2xl">
-            <div className="text-[14px] font-semibold text-white">{meta.viewer.officerName}</div>
-            {meta.viewer.designation && <div className="text-[12.5px] text-slate-400">{meta.viewer.designation}</div>}
-            <div className="mt-2 inline-block rounded border px-1.5 py-0.5 text-[11.5px] font-medium" style={{ color: def.accent, borderColor: def.accent }}>
+            <div className="text-[15px] font-semibold text-white">{meta.viewer.officerName}</div>
+            {meta.viewer.designation && <div className="text-[13.5px] text-slate-400">{meta.viewer.designation}</div>}
+            <div className="mt-2 inline-block rounded border px-1.5 py-0.5 text-[12.5px] font-medium" style={{ color: def.accent, borderColor: def.accent }}>
               {def.badge}
             </div>
-            <div className="mt-2 text-[12.5px] text-slate-400">{def.regional || role === "college" ? `${region} region` : def.bureaus === "all" ? "National scope" : `Unit: ${(def.bureaus as string[]).join(", ")}`}</div>
+            <div className="mt-2 text-[13.5px] text-slate-400">{def.regional || role === "college" ? `${region} region` : def.bureaus === "all" ? "National scope" : `Unit: ${(def.bureaus as string[]).join(", ")}`}</div>
             <Button variant="secondary" size="sm" className="mt-3 w-full" onClick={signOutNow}>
               <LogOut className="h-4 w-4" /> Sign out
             </Button>
@@ -215,7 +215,7 @@ function AiBadge() {
   const { data } = useApi<{ live: boolean }>("/api/ai/status", { interval: 60000 });
   if (!data) return null;
   return (
-    <span title="AI output is always advisory" className={cn("hidden items-center gap-1.5 rounded-md border px-2 py-1 text-[11.5px] font-medium lg:inline-flex", data.live ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-200" : "border-white/10 bg-white/[0.04] text-slate-400")}>
+    <span title="AI output is always advisory" className={cn("hidden items-center gap-1.5 rounded-md border px-2 py-1 text-[12.5px] font-medium lg:inline-flex", data.live ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-200" : "border-white/10 bg-white/[0.04] text-slate-400")}>
       <span className={cn("h-1.5 w-1.5 rounded-full", data.live ? "bg-emerald-300" : "bg-slate-500")} />
       {data.live ? "AI: Groq live" : "AI: offline fallback"}
     </span>
@@ -245,9 +245,9 @@ function Bell2() {
   const tone = (s: Alert["severity"], t: Alert["type"]) => (t === "overlap" || t === "duplicate" ? "bg-violet-400" : s === "critical" ? "bg-red-500" : s === "high" ? "bg-red-400" : s === "medium" ? "bg-amber-300" : "bg-sky-300");
   return (
     <div className="relative" ref={ref}>
-      <button aria-label="Notifications" onClick={() => setOpen((o) => !o)} className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] hover:bg-white/[0.07]">
+      <button aria-label="Notifications" onClick={() => setOpen((o) => !o)} className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#DDD0BB] bg-paper hover:bg-[#FBF4E8]">
         <Bell className="h-[18px] w-[18px] text-slate-200" />
-        {!!data?.unread && <span className="num absolute -right-1.5 -top-1.5 min-w-[20px] rounded-full bg-red-500 px-1 text-center text-[11px] font-bold leading-5 text-white">{data.unread > 99 ? "99+" : data.unread}</span>}
+        {!!data?.unread && <span className="num absolute -right-1.5 -top-1.5 min-w-[20px] rounded-full bg-red-500 px-1 text-center text-[12px] font-bold leading-5 text-paper">{data.unread > 99 ? "99+" : data.unread}</span>}
       </button>
       <AnimatePresence>
         {open && (
@@ -255,7 +255,7 @@ function Bell2() {
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
               <span className="text-sm font-semibold text-white">Notifications</span>
               <button
-                className="text-[12.5px] text-slate-400 hover:text-white"
+                className="text-[13.5px] text-slate-400 hover:text-white"
                 onClick={async () => {
                   await api("/api/alerts", { method: "POST", body: JSON.stringify({ all: true }), headers: { "Content-Type": "application/json" } });
                   reload();
@@ -270,14 +270,14 @@ function Bell2() {
                 <Link key={a.id} href={a.href} onClick={() => setOpen(false)} className={cn("flex gap-3 border-b border-white/[0.05] px-4 py-3 hover:bg-white/[0.04]", a.read && "opacity-60")}>
                   <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", tone(a.severity, a.type))} />
                   <span className="min-w-0">
-                    <span className="block text-[13px] font-medium text-white">{a.title}</span>
-                    <span className="block truncate text-[12.5px] text-slate-400">{a.message}</span>
-                    <span className="block text-[11.5px] text-slate-500">{fmtDateTime(a.at)}</span>
+                    <span className="block text-[14px] font-medium text-white">{a.title}</span>
+                    <span className="block truncate text-[13.5px] text-slate-400">{a.message}</span>
+                    <span className="block text-[12.5px] text-slate-500">{fmtDateTime(a.at)}</span>
                   </span>
                 </Link>
               ))}
             </div>
-            <Link href="/alerts" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-center text-[13px] font-medium text-saffron hover:bg-white/[0.04]">
+            <Link href="/alerts" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-center text-[14px] font-medium text-saffron hover:bg-white/[0.04]">
               Open all alerts
             </Link>
           </motion.div>
@@ -322,7 +322,7 @@ function Topbar() {
     }
   };
   return (
-    <header className="no-print sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-white/[0.06] bg-[#0A0F1E]/75 px-4 backdrop-blur-xl md:px-6 xl:px-8">
+    <header className="no-print sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[#E2D6C3] bg-[#FFFCF5]/80 px-4 backdrop-blur-xl md:px-6 xl:px-8">
       <Link href={allowed[0]} className="md:hidden">
         <BridgeMark className="h-8 w-8" />
       </Link>
@@ -333,13 +333,13 @@ function Topbar() {
           router.push(`/cases?q=${encodeURIComponent(q.trim())}`);
         }}
       >
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search cases, or Ctrl+K for everything"
           aria-label="Search cases"
-          className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.04] pl-9 pr-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-saffron/50 focus:outline-none"
+          className="h-11 w-full rounded-full border border-[#DDD0BB] bg-paper pl-10 pr-4 text-[15px] text-slate-100 placeholder:text-slate-500 focus:border-saffron/60 focus:outline-none focus:ring-4 focus:ring-amber-400/25"
         />
       </form>
       <div className="ml-auto flex items-center gap-2">

@@ -39,7 +39,7 @@ function Reveal({ id }: { id: string }) {
   };
   if (identity)
     return (
-      <div className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-[13px] text-red-100">
+      <div className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-[14px] text-red-100">
         <div className="mb-1 font-semibold">Identity revealed. This view is recorded in the audit trail.</div>
         {identity.name} · {identity.mobile} · Roll {identity.rollNo} · {identity.apaarId}
       </div>
@@ -125,8 +125,8 @@ function GrievancesPage() {
   return (
     <div className="mx-auto max-w-[1280px] space-y-4">
       <div>
-        <h1 className="text-[26px] font-bold tracking-tight text-white">Student grievances</h1>
-        <p className="text-[13.5px] text-slate-400">Complaints from the student portal. Escalations come here when a student marks a resolution Not done or a college misses its date. AICTE closes the case or returns it with directions.</p>
+        <h1 className="text-[34px] leading-[1.1] tracking-tight text-white">Student grievances</h1>
+        <p className="text-[14.5px] text-slate-400">Complaints from the student portal. Escalations come here when a student marks a resolution Not done or a college misses its date. AICTE closes the case or returns it with directions.</p>
       </div>
       <Card className="grid grid-cols-2 overflow-hidden sm:grid-cols-3 xl:grid-cols-6">
         {[
@@ -138,15 +138,15 @@ function GrievancesPage() {
           { l: "Flagged", v: s?.flagged, t: "text-violet-300" },
         ].map((x) => (
           <div key={x.l} className="border-b border-r border-white/[0.06] px-4 py-3">
-            <div className="text-[12.5px] text-slate-400">{x.l}</div>
-            {x.v === undefined ? <Skeleton className="mt-1 h-7 w-12" /> : <CountUp value={x.v} className={cn("text-[24px] font-bold", x.t)} />}
+            <div className="text-[13.5px] text-slate-400">{x.l}</div>
+            {x.v === undefined ? <Skeleton className="mt-1 h-7 w-12" /> : <CountUp value={x.v} className={cn("text-[28px] leading-tight", x.t)} />}
           </div>
         ))}
       </Card>
       {isCa && !!data?.deletionRequests.length && (
         <Card>
           <CardHeader title="Deletion requests" sub="Logged by students from their privacy page. Nothing is deleted automatically." />
-          <ul className="divide-y divide-white/[0.05] pb-2 text-[13px]">
+          <ul className="divide-y divide-white/[0.05] pb-2 text-[14px]">
             {data.deletionRequests.map((r) => (
               <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-2">
                 <span className="text-slate-200">
@@ -189,8 +189,8 @@ function GrievancesPage() {
               <button onClick={() => setOpen(open === c.id ? null : c.id)} aria-expanded={open === c.id} className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-white/[0.03]">
                 <span className="num w-9 shrink-0 text-center text-[15px] font-bold text-white">{c.urgency.score}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14px] font-medium text-white">{c.subject}</span>
-                  <span className="block truncate text-[12.5px] text-slate-400">
+                  <span className="block truncate text-[15px] font-medium text-white">{c.subject}</span>
+                  <span className="block truncate text-[13.5px] text-slate-400">
                     <span className="num">{c.id}</span> · {c.pseudonym} · {c.institution} · {c.category}
                   </span>
                 </span>
@@ -210,13 +210,13 @@ function GrievancesPage() {
               </button>
               {open === c.id && (
                 <div className="space-y-3 border-t border-white/[0.06] px-5 py-4">
-                  <p className="max-w-[80ch] text-[14px] leading-relaxed text-slate-200">{c.translatedText}</p>
+                  <p className="max-w-[80ch] text-[15px] leading-relaxed text-slate-200">{c.translatedText}</p>
                   {c.language !== "English" && (
-                    <p dir="auto" className="max-w-[80ch] text-[13px] text-slate-400">
+                    <p dir="auto" className="max-w-[80ch] text-[14px] text-slate-400">
                       Original ({c.language}): {c.originalText}
                     </p>
                   )}
-                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-[12.5px] text-slate-400">
+                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-[13.5px] text-slate-400">
                     <span>Filed {fmtDate(c.createdAt)}</span>
                     <span>College date {fmtDate(c.dueAt)}</span>
                     <span>{c.urgency.reason}</span>
@@ -224,7 +224,7 @@ function GrievancesPage() {
                     {c.maskLevel === "basic" && <span>Masking: basic</span>}
                   </div>
                   {c.suspicious.length > 0 && (
-                    <div className="rounded-lg border border-violet-300/30 bg-violet-500/10 px-3 py-2 text-[13px] text-violet-100">
+                    <div className="rounded-lg border border-violet-300/30 bg-violet-500/10 px-3 py-2 text-[14px] text-violet-100">
                       <div className="mb-1 font-medium">AICTE only: genuineness flags <Advisory /></div>
                       <ul className="list-disc pl-5">
                         {c.suspicious.map((x) => (
@@ -234,7 +234,7 @@ function GrievancesPage() {
                     </div>
                   )}
                   {c.overlapFlags.length > 0 && (
-                    <div className="rounded-lg border border-violet-300/30 bg-violet-500/10 px-3 py-2 text-[13px] text-violet-100">
+                    <div className="rounded-lg border border-violet-300/30 bg-violet-500/10 px-3 py-2 text-[14px] text-violet-100">
                       <div className="mb-1 font-medium">Competent Authority only: possible overlap with open AICTE cases <Advisory>auto-links if this escalates</Advisory></div>
                       <ul className="space-y-1">
                         {c.overlapFlags.map((f) => (
@@ -249,8 +249,8 @@ function GrievancesPage() {
                     </div>
                   )}
                   {c.rounds.map((r) => (
-                    <div key={r.round} className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-3 text-[13px] text-slate-300">
-                      <div className="text-[12.5px] font-medium text-slate-400">
+                    <div key={r.round} className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-3 text-[14px] text-slate-300">
+                      <div className="text-[13.5px] font-medium text-slate-400">
                         Round {r.round}
                         {r.proof ? ` · college's proof, ${fmtDateTime(r.proof.at)}` : ""}
                         {r.verdict ? ` · student: ${r.verdict === "done" ? "Done" : "Not done"}` : " · awaiting the student's verdict"}
@@ -259,7 +259,7 @@ function GrievancesPage() {
                       {r.proof?.note}
                       {r.reason && <div className="mt-1 text-red-200">Student&apos;s reason: {r.reason}</div>}
                       {r.evidence && (
-                        <div className="mt-1 text-[12.5px] text-slate-400">
+                        <div className="mt-1 text-[13.5px] text-slate-400">
                           <Advisory>evidence check{r.evidence.source === "mock" ? " (offline mock)" : ""}, not proof</Advisory> <span className="num text-white">{r.evidence.score}/100</span> {r.evidence.verdict}
                         </div>
                       )}
@@ -278,13 +278,13 @@ function GrievancesPage() {
                         </Button>
                       )
                     )}
-                    <Link href={`/institutions/${c.institutionId}`} className="text-[13px] text-saffron hover:underline">
+                    <Link href={`/institutions/${c.institutionId}`} className="text-[14px] text-saffron hover:underline">
                       Institution profile
                     </Link>
                   </div>
                   {c.status === "Escalated to AICTE" && data.canAct && <ReturnToCollege id={c.id} onDone={reload} />}
                   {data.canReveal && <Reveal id={c.id} />}
-                  <ul className="space-y-1 text-[12.5px] text-slate-400">
+                  <ul className="space-y-1 text-[13.5px] text-slate-400">
                     {[...c.actions].reverse().map((a, i) => (
                       <li key={i}>
                         <span className="text-slate-200">{a.type}</span> · {fmtDateTime(a.at)} · {a.by} · {a.remarks}

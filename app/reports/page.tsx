@@ -40,8 +40,8 @@ export default function ReportsPage() {
     <div className="mx-auto max-w-[1480px] space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-white">Reports and analytics</h1>
-          <p className="text-[13.5px] text-slate-400">Every report covers the cases your role can see. Export the table as CSV for MIS returns.</p>
+          <h1 className="text-[34px] leading-[1.1] tracking-tight text-white">Reports and analytics</h1>
+          <p className="text-[14.5px] text-slate-400">Every report covers the cases your role can see. Export the table as CSV for MIS returns.</p>
         </div>
         <div className="no-print flex gap-2">
           <Button variant="secondary" onClick={() => window.print()}>
@@ -83,16 +83,16 @@ export default function ReportsPage() {
             </div>
           </Card>
           <Card className="overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3 text-[13px] text-slate-400">
+            <div className="flex items-center justify-between px-5 py-3 text-[14px] text-slate-400">
               <span>
                 <span className="num font-semibold text-white">{rows.length}</span> rows
               </span>
               <span>Click a column to sort</span>
             </div>
             <div className="scroll-thin max-h-[560px] overflow-auto">
-              <table className="w-full min-w-[900px] text-[13px]">
-                <thead className="sticky top-0 bg-[#10162b]">
-                  <tr className="border-y border-white/[0.06] text-left text-[12px] text-slate-500">
+              <table className="w-full min-w-[900px] text-[14px]">
+                <thead className="sticky top-0 bg-[#FBF6EC]">
+                  <tr className="border-y border-white/[0.06] text-left text-[13px] text-slate-500">
                     {r.columns.map((c) => (
                       <th key={c.key} className={`cursor-pointer select-none px-4 py-2.5 font-medium hover:text-slate-200 ${c.numeric ? "text-right" : ""}`} onClick={() => setSort((s) => ({ key: c.key, dir: s?.key === c.key ? (-s.dir as 1 | -1) : -1 }))}>
                         {c.label}

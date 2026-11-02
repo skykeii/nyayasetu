@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import "@fontsource-variable/inter";
+import "@fontsource-variable/source-sans-3";
+import "@fontsource-variable/newsreader/opsz.css";
 import "./globals.css";
 import { AppShell } from "@/components/shell";
 
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body className="font-sans antialiased">
         <AppShell>{children}</AppShell>
       </body>

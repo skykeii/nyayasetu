@@ -107,7 +107,7 @@ export function CommandPalette({ pages }: { pages: { href: string; label: string
               } else if (e.key === "Enter") go(hits[active]);
             }}
           />
-          <kbd className="rounded border border-white/15 px-1.5 py-0.5 text-[11px] text-slate-400">Esc</kbd>
+          <kbd className="rounded border border-white/15 px-1.5 py-0.5 text-[12px] text-slate-400">Esc</kbd>
         </div>
         <ul id="palette-results" role="listbox" className="scroll-thin max-h-[50vh] overflow-y-auto py-1">
           {hits.map((h, i) => (
@@ -115,14 +115,14 @@ export function CommandPalette({ pages }: { pages: { href: string; label: string
               <button onMouseEnter={() => setActive(i)} onClick={() => go(h)} className={cn("flex w-full items-center gap-3 px-4 py-2 text-left", i === active && "bg-white/[0.08]")}>
                 {h.kind === "Institution" ? <Building2 className="h-4 w-4 shrink-0 text-slate-400" /> : h.kind === "Case" ? <ClipboardList className="h-4 w-4 shrink-0 text-slate-400" /> : <CornerDownLeft className="h-4 w-4 shrink-0 text-slate-400" />}
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14px] text-white">{h.label}</span>
-                  {h.sub && <span className="block truncate text-[12px] text-slate-400">{h.sub}</span>}
+                  <span className="block truncate text-[15px] text-white">{h.label}</span>
+                  {h.sub && <span className="block truncate text-[13px] text-slate-400">{h.sub}</span>}
                 </span>
                 <Badge>{h.kind}</Badge>
               </button>
             </li>
           ))}
-          {hits.length === 0 && <li className="px-4 py-6 text-center text-[13.5px] text-slate-400">Nothing matches “{q}”.</li>}
+          {hits.length === 0 && <li className="px-4 py-6 text-center text-[14.5px] text-slate-400">Nothing matches “{q}”.</li>}
         </ul>
       </div>
     </div>

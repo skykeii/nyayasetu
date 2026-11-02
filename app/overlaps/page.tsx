@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Handshake, Link2, Unlink, XCircle } from "lucide-react";
 import { useApi, useRole } from "@/components/role-provider";
-import { Advisory, Badge, Button, Card, Input, Select, Skeleton, Tabs, cn } from "@/components/ui";
+import { Advisory, Badge, Button, Card, CardHeader, Input, Select, Skeleton, Tabs, cn } from "@/components/ui";
 import { BureauChip, Confidence, ErrorNote, OverlapPulse, SlaBadge, StatusBadge } from "@/components/bits";
-import { OverlapBridge } from "@/components/overlap-bridge";
+import { MapLegend, OverlapBridge } from "@/components/overlap-bridge";
+import { ConnectionMap } from "@/components/connection-map";
 import { CaseDrawer } from "@/components/case-drawer";
 import { AiExplain } from "@/components/ai-explain";
 import type { OverlapCluster } from "@/lib/overlap";
@@ -50,9 +51,9 @@ function Overlaps() {
     <div className="mx-auto max-w-[1480px] space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-white">Cross-bureau overlaps</h1>
-          <p className="max-w-[80ch] text-[13.5px] text-slate-400">
-            The engine compares every open case pair on Permanent ID (exact or one-digit typo), fuzzy institution name (normalised tokens, Levenshtein, acronyms) and complaint text (TF-IDF cosine). Matches at or above {Math.round((data?.minConfidence ?? 0.62) * 100)}% are shown. An official decides whether cases are related.
+          <h1 className="text-[34px] leading-[1.1] tracking-tight text-white">Cross-bureau overlaps</h1>
+          <p className="max-w-[80ch] text-[14.5px] text-slate-400">
+            The same institution, often the same issue, reported to more than one unit. NyayaSetu compares the Permanent ID, the way the institution&apos;s name is written and the complaint text, and shows every pair that matches {Math.round((data?.minConfidence ?? 0.62) * 100)}% or more. An official decides whether they are related.
           </p>
         </div>
       </div>
@@ -73,6 +74,20 @@ function Overlaps() {
           <option value="duplicate">Same-unit duplicates only</option>
         </Select>
       </div>
+      {items.some((i) => i.kind === "cross-bureau") && (
+        <Card>
+          <CardHeader title="Connection map" sub="Units on the left, institutions on the right. Every line is a complaint. Select an institution to jump to its overlap below." />
+          <div className="px-6 pb-6">
+            <ConnectionMap
+              links={items
+                .filter((i) => i.kind === "cross-bureau")
+                .slice(0, 20)
+                .map((i) => ({ clusterId: i.id, institutionId: i.institution.id, institution: i.institution.name, status: i.status, confidence: i.confidence, cases: i.cases.map((c) => ({ id: c.id, bureau: c.bureau })) }))}
+            />
+          </div>
+        </Card>
+      )}
+      <MapLegend />
       {error && <ErrorNote msg={error} />}
       {loading && [0, 1, 2].map((i) => <Skeleton key={i} className="h-64" />)}
       {data && items.length === 0 && (
@@ -80,7 +95,7 @@ function Overlaps() {
           Nothing here. {tab === "Open" ? "Every detected overlap in your scope has been linked or coordinated." : "Switch tabs to see other clusters."}
         </Card>
       )}
-      <div className="space-y-4">
+      <div className="space-y-5">
         {items.map((it) => (
           <ClusterCard key={it.id} it={it} focused={focus === it.id} onOpen={setOpen} onDone={reload} />
         ))}
@@ -95,6 +110,7 @@ function ClusterCard({ it, focused, onOpen, onDone }: { it: Item; focused: boole
   const [note, setNote] = React.useState("");
   const [lead, setLead] = React.useState(it.group?.leadBureau ?? (it.bureaus.includes("RB") ? "RB" : it.bureaus[0]));
   const [busy, setBusy] = React.useState<string | null>(null);
+  const [view, setView] = React.useState<"read" | "why">("read");
   const best = [...it.pairs].sort((a, b) => b.confidence - a.confidence)[0];
   const act = async (action: "link" | "coordinate" | "dismiss" | "unlink", done: string) => {
     setBusy(action);
@@ -111,47 +127,56 @@ function ClusterCard({ it, focused, onOpen, onDone }: { it: Item; focused: boole
     }
   };
   return (
-    <Card id={it.id} className={cn("overflow-hidden scroll-mt-24", it.status === "Open" && "border-violet-400/30", focused && "ring-2 ring-violet-400/60")}>
-      <div className={cn("flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] px-5 py-4", it.status === "Open" && "bg-violet-500/[0.06]")}>
+    <Card id={it.id} className={cn("overflow-hidden scroll-mt-24", focused && "ring-4 ring-violet-400/30")}>
+      <div className="flex flex-wrap items-start justify-between gap-3 px-6 pb-2 pt-5">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             {it.status === "Open" && <OverlapPulse />}
-            <span className="text-[14px] font-semibold text-violet-100">{it.kind === "cross-bureau" ? "Potential Overlapping Cases – Coordination Required" : "Possible duplicate registration"}</span>
+            <span className="text-[14.5px] font-semibold text-violet-300">{it.kind === "cross-bureau" ? (it.status === "Open" ? "Potential Overlapping Cases – Coordination Required" : "Overlapping cases") : "Possible duplicate registration"}</span>
           </div>
-          <Link href={`/institutions/${it.institution.id}`} className="mt-1 block text-[16px] font-semibold text-white hover:text-saffron">
+          <Link href={`/institutions/${it.institution.id}`} className="mt-1 block font-display text-[24px] font-semibold leading-tight text-white hover:text-saffron">
             {it.institution.name}
           </Link>
-          <div className="num text-[12.5px] text-slate-400">
+          <div className="num text-[13.5px] text-slate-400">
             {it.institution.id} · {it.institution.city} · {it.institution.region} · cluster {it.id}
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Badge tone={it.status === "Open" ? "violet" : it.status === "Coordinated" ? "emerald" : "indigo"}>{it.status}</Badge>
+          <Badge tone={it.status === "Open" ? "violet" : it.status === "Coordinated" ? "emerald" : "indigo"}>{it.status === "Open" ? "Needs coordination" : it.status}</Badge>
           <Confidence value={it.confidence} />
           <Advisory />
         </div>
       </div>
 
-      <div className="space-y-4 px-5 py-4">
-        <OverlapBridge status={it.status} onOpen={onOpen} cases={it.cases} />
+      <div className="space-y-5 px-6 pb-6 pt-3">
+        <OverlapBridge status={it.status} onOpen={onOpen} cases={it.cases} pairs={it.pairs} />
 
+        <Tabs
+          value={view}
+          onChange={setView}
+          items={[
+            { key: "read", label: "Read the complaints" },
+            { key: "why", label: "Why they match" },
+          ]}
+        />
+        {view === "read" && (
         <div className="grid gap-3 lg:grid-cols-2">
           {it.cases.map((c) => (
-            <div key={c.id} className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3.5">
+            <div key={c.id} className="rounded-2xl border border-[#EADFCD] bg-[#FBF6EC] p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <BureauChip code={c.bureau} />
-                <button onClick={() => onOpen(c.id)} className="num text-[13.5px] font-semibold text-white hover:text-saffron">
+                <button onClick={() => onOpen(c.id)} className="num text-[14.5px] font-semibold text-white hover:text-saffron">
                   {c.id}
                 </button>
                 <StatusBadge status={c.status} />
                 <SlaBadge sla={c.sla} />
               </div>
-              <div className="mt-1 text-[12.5px] text-slate-400">
+              <div className="mt-1 text-[13.5px] text-slate-400">
                 <span className="num">{c.reference}</span> · received {fmtDate(c.dateReceived)} · {c.officer}
               </div>
-              <div className="mt-2 text-[13px] font-medium text-slate-100">{c.subject}</div>
-              <p className="mt-1 line-clamp-4 max-w-[70ch] text-[13px] leading-relaxed text-slate-300">{c.description}</p>
-              <div className="mt-2 text-[12px] text-slate-500">
+              <div className="mt-2 text-[14px] font-medium text-slate-100">{c.subject}</div>
+              <p className="mt-1 line-clamp-4 max-w-[70ch] text-[14px] leading-relaxed text-slate-300">{c.description}</p>
+              <div className="mt-2 text-[13px] text-slate-500">
                 Institution as written: <span className="text-slate-300">“{c.reportedName}”</span>
                 {c.reportedPid ? (
                   <>
@@ -166,8 +191,11 @@ function ClusterCard({ it, focused, onOpen, onDone }: { it: Item; focused: boole
           ))}
         </div>
 
-        <div className="rounded-xl border border-white/[0.07] bg-black/20 p-3.5">
-          <div className="mb-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[12.5px] text-slate-400">
+        )}
+
+        {view === "why" && (
+        <div className="rounded-2xl border border-[#EADFCD] bg-[#FBF6EC] p-4">
+          <div className="mb-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[13.5px] text-slate-400">
             <span>Match reasons</span>
             {best && (
               <>
@@ -184,22 +212,23 @@ function ClusterCard({ it, focused, onOpen, onDone }: { it: Item; focused: boole
                 {best && <AiExplain a={best.a} b={best.b} score={best.confidence} reasons={best.reasons} />}
           <ul className="space-y-1">
             {[...new Set(it.pairs.flatMap((p) => p.reasons))].slice(0, 8).map((r) => (
-              <li key={r} className="flex gap-2 text-[13px] text-slate-300">
+              <li key={r} className="flex gap-2 text-[14px] text-slate-300">
                 <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-violet-300" />
                 {r}
               </li>
             ))}
           </ul>
         </div>
+        )}
 
         {it.group && (
-          <div className="text-[12.5px] text-slate-400">
+          <div className="text-[13.5px] text-slate-400">
             {it.group.status} as <span className="num text-slate-200">{it.group.id}</span> by {it.group.by} on {fmtDateTime(it.group.at)}. Lead unit <BureauChip code={it.group.leadBureau} />. Note: {it.group.note}
           </div>
         )}
 
         {it.canAct ? (
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+          <div className="flex flex-col gap-2 rounded-2xl border border-[#EADFCD] bg-[#F6EEE1] p-3 lg:flex-row lg:items-center">
             <Select value={lead} onChange={(e) => setLead(e.target.value as typeof lead)} className="lg:w-56" aria-label="Lead unit">
               {(meta?.bureaus ?? [])
                 .filter((b) => it.bureaus.includes(b.code))
@@ -234,7 +263,7 @@ function ClusterCard({ it, focused, onOpen, onDone }: { it: Item; focused: boole
             </div>
           </div>
         ) : (
-          <div className="text-[12.5px] text-slate-500">View only. Linking is done by the units handling these cases or the Competent Authority.</div>
+          <div className="text-[13.5px] text-slate-500">View only. Linking is done by the units handling these cases or the Competent Authority.</div>
         )}
       </div>
     </Card>

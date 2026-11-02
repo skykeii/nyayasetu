@@ -5,7 +5,8 @@ import { useApi, useRole } from "@/components/role-provider";
 import { Badge, Card, CardHeader, Skeleton, cn } from "@/components/ui";
 import { BureauChip, Confidence, CountUp, ErrorNote, SeverityDot } from "@/components/bits";
 import { BarsChart, LinesChart } from "@/components/charts";
-import { OverlapBridge } from "@/components/overlap-bridge";
+import { MapLegend, OverlapBridge } from "@/components/overlap-bridge";
+import { ConnectionMap, type Connection } from "@/components/connection-map";
 import { MetricToggle, StateHeatmap, type AreaRow, type Metric } from "@/components/state-heatmap";
 import { CaseDrawer } from "@/components/case-drawer";
 import type { Severity, Status } from "@/lib/types";
@@ -19,7 +20,8 @@ interface Dash {
   regions: { region: string; open: number; overdue: number; total: number }[];
   activity: { id: string; at: string; type: string; by: string; bureau: string; remarks: string; caseId: string; institution?: string }[];
   queue: { id: string; category: string; bureau: string; status: Status; institution?: string; nextAction: string; daysToDue: number; severity: Severity }[];
-  overlapFeed: { id: string; status: string; confidence: number; bureaus: string[]; institutionId: string; institution?: string; cases: { id: string; bureau: string; subject: string; reference: string; reportedName: string }[]; topReason?: string; newestAt: string }[];
+  overlapFeed: { id: string; status: string; confidence: number; bureaus: string[]; institutionId: string; institution?: string; cases: { id: string; bureau: string; subject: string; reference: string; reportedName: string }[]; topReason?: string; newestAt: string; pairs?: { a: string; b: string; confidence: number; reasons: string[] }[] }[];
+  connections?: Connection[];
   scope: string;
   generatedAt: string;
 }
@@ -56,10 +58,10 @@ export default function CommandCenter() {
     <div className="mx-auto max-w-[1480px] space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-white">{TITLES[role]}</h1>
-          <p className="text-[13.5px] text-slate-400">{data?.scope ?? "Loading scope"}</p>
+          <h1 className="text-[34px] leading-[1.1] tracking-tight text-white">{TITLES[role]}</h1>
+          <p className="text-[14.5px] text-slate-400">{data?.scope ?? "Loading scope"}</p>
         </div>
-        <div className="flex items-center gap-2 text-[12.5px] text-slate-400">
+        <div className="flex items-center gap-2 text-[13.5px] text-slate-400">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
@@ -71,109 +73,123 @@ export default function CommandCenter() {
       <Card className="grid grid-cols-2 divide-white/[0.06] overflow-hidden sm:grid-cols-4 xl:grid-cols-8 [&>*]:border-white/[0.06]">
         {tiles.map((t, i) => (
           <Link key={t.label} href={t.href} className={cn("group border-b px-4 py-4 transition-colors hover:bg-white/[0.03] xl:border-b-0", i % 4 !== 3 && "sm:border-r", "xl:border-r last:border-r-0")}>
-            <div className="text-[12.5px] text-slate-400 group-hover:text-slate-200">{t.label}</div>
+            <div className="text-[13.5px] text-slate-400 group-hover:text-slate-200">{t.label}</div>
             {t.value === undefined ? <Skeleton className="mt-2 h-8 w-16" /> : <CountUp value={t.value} className={cn("mt-1 block text-[28px] font-bold leading-tight tracking-tight text-white", t.tone)} />}
-            {t.hint && <div className="mt-0.5 line-clamp-2 text-[11.5px] leading-snug text-slate-500">{t.hint}</div>}
+            {t.hint && <div className="mt-0.5 line-clamp-2 text-[12.5px] leading-snug text-slate-500">{t.hint}</div>}
           </Link>
         ))}
       </Card>
 
-      <div className="grid gap-5 xl:grid-cols-[1.55fr_1fr]">
+
+      <div className="grid items-start gap-5 xl:grid-cols-[1.15fr_1fr]">
         <Card className="min-w-0 overflow-hidden">
           <CardHeader
             title="Cross-bureau overlap alerts"
             sub="Same institution, same issue, handled by different units. Detected from Permanent ID, fuzzy name and complaint text."
             right={
-              <Link href="/overlaps" className="text-[13px] font-medium text-saffron hover:underline">
+              <Link href="/overlaps" className="text-[14px] font-medium text-saffron hover:underline">
                 All overlaps
               </Link>
             }
           />
-          <div className="space-y-3 px-5 pb-5">
+          <div className="space-y-4 px-6 pb-6">
             {loading && [0, 1, 2].map((i) => <Skeleton key={i} className="h-24" />)}
+            <MapLegend className="pb-1" />
             {data?.overlapFeed.map((o) => (
-              <div key={o.id} className={cn("rounded-xl border p-3.5", o.status === "Open" ? "border-violet-400/30 bg-violet-500/[0.05]" : "border-white/[0.07] bg-white/[0.02]")}>
-                <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+              <div key={o.id} className="border-t border-[#EADFCD] pt-4 first:border-t-0 first:pt-1">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <Link href={`/institutions/${o.institutionId}`} className="block truncate text-[14px] font-semibold text-white hover:text-saffron">
+                    <Link href={`/institutions/${o.institutionId}`} className="block truncate font-display text-[17px] font-semibold text-white hover:text-saffron">
                       {o.institution}
                     </Link>
-                    {o.status === "Open" && <div className="text-[12px] font-medium text-violet-200">Potential Overlapping Cases – Coordination Required</div>}
+                    {o.status === "Open" && <div className="text-[13.5px] font-medium text-violet-300">Potential Overlapping Cases – Coordination Required</div>}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge tone={o.status === "Open" ? "violet" : o.status === "Coordinated" ? "emerald" : "indigo"}>{o.status}</Badge>
+                    <Badge tone={o.status === "Open" ? "violet" : o.status === "Coordinated" ? "emerald" : "indigo"}>{o.status === "Open" ? "Needs coordination" : o.status}</Badge>
                     <Confidence value={o.confidence} />
                   </div>
                 </div>
-                <OverlapBridge cases={o.cases} status={o.status} onOpen={setOpen} compact />
-                {o.topReason && <div className="mt-2 truncate text-[12px] text-slate-500">{o.topReason}</div>}
+                <OverlapBridge cases={o.cases} pairs={o.pairs} institution={o.institution} status={o.status} onOpen={setOpen} compact />
+                {o.topReason && <div className="mt-2 truncate text-[13.5px] text-slate-500">Why: {o.topReason}</div>}
               </div>
             ))}
             {data && data.overlapFeed.length === 0 && <div className="py-8 text-center text-sm text-slate-400">No cross-bureau overlaps in your scope. Use “Simulate incoming case” to generate one.</div>}
           </div>
         </Card>
+        <Card className="min-w-0 xl:sticky xl:top-20">
+          <CardHeader
+            title="Connection map"
+            sub="Which units are working on the same institution. Select an institution to coordinate."
+            right={
+              <Link href="/overlaps" className="text-[14px] font-medium text-saffron hover:underline">
+                All overlaps
+              </Link>
+            }
+          />
+          <div className="px-6 pb-6">{data ? <ConnectionMap links={data.connections ?? []} /> : <Skeleton className="h-96" />}</div>
+        </Card>
+      </div>
 
-        <div className="min-w-0 space-y-5">
-          <Card>
-            <CardHeader title="Bureau / Cell workload" sub="Open cases by status, with SLA breaches" />
-            <div className="px-3 pb-3">
-              {data ? (
-                <BarsChart
-                  horizontal
-                  stacked
-                  height={Math.max(150, data.bureauWorkload.length * 44 + 50)}
-                  data={data.bureauWorkload}
-                  x="bureau"
-                  series={[
-                    { key: "New", label: "Pending", color: "#38BDF8" },
-                    { key: "Under Process", label: "Under process", color: "#FBBF24" },
-                    { key: "Transferred", label: "Transferred", color: "#818CF8" },
-                    { key: "Escalated", label: "Escalated", color: "#FF9933" },
-                  ]}
-                />
-              ) : (
-                <Skeleton className="m-2 h-48" />
-              )}
-              {data && (
-                <div className="flex flex-wrap gap-2 px-2 pb-1">
-                  {data.bureauWorkload.map((b) => (
-                    <span key={String(b.bureau)} className="inline-flex items-center gap-1.5 text-[12px] text-slate-400">
-                      <BureauChip code={String(b.bureau)} /> <span className="num text-red-300">{b.overdue}</span> overdue
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </Card>
-          <Card>
-            <CardHeader title={role === "ca" || role === "ro" ? "Next actions due" : "My queue"} sub="Open cases closest to their disposal date" />
-            <div className="divide-y divide-white/[0.05] pb-2">
-              {loading && <Skeleton className="mx-5 mb-4 h-40" />}
-              {data?.queue.map((q) => (
-                <button key={q.id} onClick={() => setOpen(q.id)} className="flex w-full items-center gap-3 px-5 py-2.5 text-left hover:bg-white/[0.03]">
-                  <span className={cn("num w-14 shrink-0 text-right text-[13px] font-semibold", q.daysToDue < 0 ? "text-red-300" : q.daysToDue <= 5 ? "text-amber-200" : "text-slate-300")}>{q.daysToDue < 0 ? `${-q.daysToDue}d late` : `${q.daysToDue}d`}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="num text-[13px] font-medium text-white">{q.id}</span>
-                      <BureauChip code={q.bureau} />
-                      <SeverityDot s={q.severity} />
-                    </span>
-                    <span className="block truncate text-[12px] text-slate-400">{q.nextAction}</span>
+      <div className="grid items-start gap-5 lg:grid-cols-2">
+        <Card className="min-w-0">
+          <CardHeader title="Bureau / Cell workload" sub="Open cases by status, with SLA breaches" />
+          <div className="px-3 pb-3">
+            {data ? (
+              <BarsChart
+                horizontal
+                stacked
+                height={Math.max(150, data.bureauWorkload.length * 44 + 50)}
+                data={data.bureauWorkload}
+                x="bureau"
+                series={[
+                  { key: "New", label: "Pending", color: "#357D7A" },
+                  { key: "Under Process", label: "Under process", color: "#C2831A" },
+                  { key: "Transferred", label: "Transferred", color: "#53659A" },
+                  { key: "Escalated", label: "Escalated", color: "#CC6A22" },
+                ]}
+              />
+            ) : (
+              <Skeleton className="m-2 h-48" />
+            )}
+            {data && (
+              <div className="flex flex-wrap gap-2 px-2 pb-1">
+                {data.bureauWorkload.map((b) => (
+                  <span key={String(b.bureau)} className="inline-flex items-center gap-1.5 text-[13px] text-slate-400">
+                    <BureauChip code={String(b.bureau)} /> <span className="num text-red-300">{b.overdue}</span> overdue
                   </span>
-                </button>
-              ))}
-            </div>
-          </Card>
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+        <Card className="min-w-0">
+          <CardHeader title={role === "ca" || role === "ro" ? "Next actions due" : "My queue"} sub="Open cases closest to their disposal date" />
+          <div className="divide-y divide-white/[0.05] pb-2">
+            {loading && <Skeleton className="mx-5 mb-4 h-40" />}
+            {data?.queue.map((q) => (
+              <button key={q.id} onClick={() => setOpen(q.id)} className="flex w-full items-center gap-3 px-5 py-2.5 text-left hover:bg-white/[0.03]">
+                <span className={cn("num w-14 shrink-0 text-right text-[14px] font-semibold", q.daysToDue < 0 ? "text-red-300" : q.daysToDue <= 5 ? "text-amber-200" : "text-slate-300")}>{q.daysToDue < 0 ? `${-q.daysToDue}d late` : `${q.daysToDue}d`}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="num text-[14px] font-medium text-white">{q.id}</span>
+                    <BureauChip code={q.bureau} />
+                    <SeverityDot s={q.severity} />
+                  </span>
+                  <span className="block truncate text-[13px] text-slate-400">{q.nextAction}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </Card>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[1.55fr_1fr]">
         <Card className="min-w-0 overflow-hidden">
           <CardHeader title="Institution-wise status" sub="Institutions with the most open complaints in your scope" />
           <div className="scroll-thin overflow-x-auto">
-            <table className="w-full min-w-[640px] text-[13px]">
+            <table className="w-full min-w-[640px] text-[14px]">
               <thead>
-                <tr className="border-y border-white/[0.06] text-left text-[12px] text-slate-500">
+                <tr className="border-y border-white/[0.06] text-left text-[13px] text-slate-500">
                   <th className="px-5 py-2 font-medium">Institution</th>
                   <th className="px-2 py-2 font-medium">Region</th>
                   <th className="px-2 py-2 text-right font-medium">Pending</th>
@@ -191,7 +207,7 @@ export default function CommandCenter() {
                       <Link href={`/institutions/${r.id}`} className="block truncate text-slate-100 hover:text-saffron">
                         {r.name}
                       </Link>
-                      <span className="num text-[11.5px] text-slate-500">{r.id}</span>
+                      <span className="num text-[12.5px] text-slate-500">{r.id}</span>
                     </td>
                     <td className="px-2 py-2 text-slate-400">{r.region}</td>
                     <td className="num px-2 py-2 text-right">{r.New}</td>
@@ -215,8 +231,8 @@ export default function CommandCenter() {
                 data={data.trend}
                 x="month"
                 series={[
-                  { key: "received", label: "Received", color: "#FF9933" },
-                  { key: "disposed", label: "Disposed", color: "#34D399" },
+                  { key: "received", label: "Received", color: "#CC6A22" },
+                  { key: "disposed", label: "Disposed", color: "#4C8040" },
                 ]}
               />
             ) : (
@@ -231,12 +247,12 @@ export default function CommandCenter() {
           title="Regional heatmap"
           sub="Select a state to open its cases."
           right={
-            <Link href="/heatmap" className="text-[13px] font-medium text-saffron hover:underline">
+            <Link href="/heatmap" className="text-[14px] font-medium text-saffron hover:underline">
               Full heatmap
             </Link>
           }
         />
-        <div className="px-5 pb-5">
+        <div className="px-6 pb-6">
           <MetricToggle metric={metric} onChange={setMetric} />
           <div className="mt-3">{map ? <StateHeatmap rows={map.states} metric={metric} /> : <Skeleton className="h-96" />}</div>
         </div>
@@ -252,8 +268,8 @@ export default function CommandCenter() {
                 x="region"
                 height={250}
                 series={[
-                  { key: "open", label: "Open", color: "#FBBF24" },
-                  { key: "overdue", label: "Beyond timeline", color: "#F87171" },
+                  { key: "open", label: "Open", color: "#C2831A" },
+                  { key: "overdue", label: "Beyond timeline", color: "#BE4A32" },
                 ]}
               />
             ) : (
@@ -268,13 +284,13 @@ export default function CommandCenter() {
               <button key={a.id} onClick={() => setOpen(a.caseId)} className="flex w-full items-start gap-3 px-5 py-2.5 text-left hover:bg-white/[0.03]">
                 <BureauChip code={a.bureau} className="mt-0.5" />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] text-slate-100">
+                  <span className="block text-[14px] text-slate-100">
                     <span className="font-medium">{a.type}</span> <span className="num text-slate-400">on {a.caseId}</span>
                     {a.institution && <span className="text-slate-500"> ({a.institution})</span>}
                   </span>
-                  <span className="block truncate text-[12px] text-slate-400">{a.remarks}</span>
+                  <span className="block truncate text-[13px] text-slate-400">{a.remarks}</span>
                 </span>
-                <span className="shrink-0 text-[11.5px] text-slate-500">{fmtDateTime(a.at)}</span>
+                <span className="shrink-0 text-[12.5px] text-slate-500">{fmtDateTime(a.at)}</span>
               </button>
             ))}
           </div>

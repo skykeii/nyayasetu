@@ -22,12 +22,12 @@ export function AiExplain({ a, b, draft, score, reasons }: { a: string; b?: stri
   };
   if (!out)
     return (
-      <button onClick={run} disabled={busy} className="mt-1 inline-flex items-center gap-1 text-[12px] text-violet-200 underline hover:text-white disabled:opacity-50">
+      <button onClick={run} disabled={busy} className="mt-1 inline-flex items-center gap-1 text-[13px] text-violet-200 underline hover:text-white disabled:opacity-50">
         <Sparkles className="h-3 w-3" /> {busy ? "Asking" : borderline ? "AI second opinion" : "Explain this match"}
       </button>
     );
   return (
-    <div className="mt-1.5 rounded-md border border-sky-300/20 bg-sky-400/[0.06] px-2.5 py-1.5 text-[12.5px] text-slate-200">
+    <div className="mt-1.5 rounded-md border border-sky-300/20 bg-sky-400/[0.06] px-2.5 py-1.5 text-[13.5px] text-slate-200">
       <Advisory>{out.source === "groq" ? "AI, does not change the score" : "offline, AI unavailable"}</Advisory> {out.explanation}
       {out.secondOpinion && <div className="mt-1 text-slate-300">Second opinion: {out.secondOpinion}</div>}
     </div>

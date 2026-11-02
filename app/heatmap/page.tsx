@@ -25,8 +25,8 @@ export default function HeatmapPage() {
     <div className="mx-auto max-w-[1280px] space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-white">Regional heatmap</h1>
-          <p className="text-[13.5px] text-slate-400">Where complaints concentrate and where they are handled well, for the cases your role can see. Select a state to filter.</p>
+          <h1 className="text-[34px] leading-[1.1] tracking-tight text-white">Regional heatmap</h1>
+          <p className="text-[14.5px] text-slate-400">Where complaints concentrate and where they are handled well, for the cases your role can see. Select a state to filter.</p>
         </div>
         <MetricToggle metric={metric} onChange={setMetric} />
       </div>
@@ -34,7 +34,7 @@ export default function HeatmapPage() {
         <Card className="min-w-0 p-5">
           {loading ? <Skeleton className="h-[440px]" /> : <StateHeatmap rows={data?.states ?? []} metric={metric} selected={selected} onSelect={(r) => setSelected(r.key === selected ? null : r.key)} />}
           {sel && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[13px] text-slate-300">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[14px] text-slate-300">
               <span>
                 <span className="font-semibold text-white">{sel.key}</span> · {sel.region} region · <span className="num">{sel.total}</span> complaints · <span className="num">{sel.open}</span> open · <span className="num">{sel.overdue}</span> overdue
               </span>
@@ -54,7 +54,7 @@ export default function HeatmapPage() {
             title="Where it's good vs bad"
             sub={`${def.label}, best first`}
             right={
-              <div className="flex gap-1 text-[12px]">
+              <div className="flex gap-1 text-[13px]">
                 {(["states", "regions"] as const).map((k) => (
                   <button key={k} onClick={() => setBy(k)} aria-pressed={by === k} className={cn("rounded-md px-2 py-1 capitalize", by === k ? "bg-white/10 text-white" : "text-slate-400 hover:text-white")}>
                     {k}
@@ -66,16 +66,16 @@ export default function HeatmapPage() {
           <ol className="divide-y divide-white/[0.05] pb-2">
             {ranked.map((r, i) => (
               <li key={r.key}>
-                <button onClick={() => setSelected(by === "states" ? r.key : null)} className={cn("flex w-full items-center gap-3 px-5 py-2 text-left text-[13px] hover:bg-white/[0.03]", selected === r.key && "bg-white/[0.06]")}>
+                <button onClick={() => setSelected(by === "states" ? r.key : null)} className={cn("flex w-full items-center gap-3 px-5 py-2 text-left text-[14px] hover:bg-white/[0.03]", selected === r.key && "bg-white/[0.06]")}>
                   <span className="num w-5 shrink-0 text-right text-slate-500">{i + 1}</span>
                   <span className="min-w-0 flex-1 truncate text-slate-200">{r.key}</span>
-                  <span className="num shrink-0 text-[12px] text-slate-500">{r.total} cases</span>
+                  <span className="num shrink-0 text-[13px] text-slate-500">{r.total} cases</span>
                   <span className="num w-24 shrink-0 text-right font-semibold text-white">{formatMetric(r, metric)}</span>
                 </button>
               </li>
             ))}
           </ol>
-          {few > 0 && <p className="px-5 pb-3 text-[12px] text-slate-500">{few} {by === "states" ? "state(s)" : "region(s)"} with fewer than {MIN_CASES} cases are not ranked.</p>}
+          {few > 0 && <p className="px-5 pb-3 text-[13px] text-slate-500">{few} {by === "states" ? "state(s)" : "region(s)"} with fewer than {MIN_CASES} cases are not ranked.</p>}
         </Card>
       </div>
     </div>

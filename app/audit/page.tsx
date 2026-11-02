@@ -28,7 +28,7 @@ function VerifyIntegrity() {
         Verify integrity
       </Button>
       {out && (
-        <span role="status" className={out.ok ? "text-[13px] text-emerald-200" : "text-[13px] font-semibold text-red-300"}>
+        <span role="status" className={out.ok ? "text-[14px] text-emerald-200" : "text-[14px] font-semibold text-red-300"}>
           {out.ok ? `Hash chain intact: ${out.checked} entries checked.` : `Chain broken at ${out.brokenAt}. An entry was changed or removed.`}
         </span>
       )}
@@ -47,8 +47,8 @@ export default function AuditPage() {
   return (
     <div className="mx-auto max-w-[1280px] space-y-4">
       <div>
-        <h1 className="text-[26px] font-bold tracking-tight text-white">Audit trail</h1>
-        <p className="text-[13.5px] text-slate-400">Every sign-in, case view, action, link and settings change, with the officer and role that made it. Append-only.</p>
+        <h1 className="text-[34px] leading-[1.1] tracking-tight text-white">Audit trail</h1>
+        <p className="text-[14.5px] text-slate-400">Every sign-in, case view, action, link and settings change, with the officer and role that made it. Append-only.</p>
       <VerifyIntegrity />
         </div>
       <Card className="p-4">
@@ -59,13 +59,13 @@ export default function AuditPage() {
       </Card>
       {error && <ErrorNote msg={error} />}
       <Card className="overflow-hidden">
-        <div className="px-5 py-3 text-[13px] text-slate-400">
+        <div className="px-5 py-3 text-[14px] text-slate-400">
           <span className="num font-semibold text-white">{data?.total ?? "…"}</span> entries{data && data.total > 500 ? " (latest 500 shown)" : ""}
         </div>
         <div className="scroll-thin overflow-x-auto">
-          <table className="w-full min-w-[900px] text-[13px]">
+          <table className="w-full min-w-[900px] text-[14px]">
             <thead>
-              <tr className="border-y border-white/[0.06] text-left text-[12px] text-slate-500">
+              <tr className="border-y border-white/[0.06] text-left text-[13px] text-slate-500">
                 <th className="px-5 py-2.5 font-medium">When</th>
                 <th className="px-2 py-2.5 font-medium">Officer</th>
                 <th className="px-2 py-2.5 font-medium">Role</th>

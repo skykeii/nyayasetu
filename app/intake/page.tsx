@@ -121,8 +121,8 @@ export default function IntakePage() {
   return (
     <div className="mx-auto max-w-[1180px] space-y-4">
       <div>
-        <h1 className="text-[26px] font-bold tracking-tight text-white">Officer intake</h1>
-        <p className="text-[13.5px] text-slate-400">Log a complaint received by letter, email, CPGRAMS, phone or in person, for an external complainant. AI pre-fills the details and you can edit them. Every complaint is checked against all open cases before saving.</p>
+        <h1 className="text-[34px] leading-[1.1] tracking-tight text-white">Officer intake</h1>
+        <p className="text-[14.5px] text-slate-400">Log a complaint received by letter, email, CPGRAMS, phone or in person, for an external complainant. AI pre-fills the details and you can edit them. Every complaint is checked against all open cases before saving.</p>
       </div>
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <Card className="space-y-3 p-5">
@@ -172,7 +172,7 @@ export default function IntakePage() {
           </div>
           <div>
             <Label>Attachments (PNG, JPG or PDF; 4 MB in total)</Label>
-            <input type="file" multiple accept="image/png,image/jpeg,application/pdf" aria-label="Attachments" onChange={(e) => setFiles([...(e.target.files ?? [])])} className="text-[13px] text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-slate-100" />
+            <input type="file" multiple accept="image/png,image/jpeg,application/pdf" aria-label="Attachments" onChange={(e) => setFiles([...(e.target.files ?? [])])} className="text-[14px] text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-slate-100" />
           </div>
           <Button variant="primary" onClick={analyse} loading={busy} disabled={v.text.trim().length < 15}>
             <Wand2 className="h-4 w-4" /> Process complaint
@@ -190,12 +190,12 @@ export default function IntakePage() {
                 <Label>English ({p.source === "original" ? "as given" : p.source === "sample" ? "reviewed sample translation" : p.source === "llm" ? "machine-translated" : "offline, an official should read the original"})</Label>
                 <Textarea value={translation} onChange={(e) => setTranslation(e.target.value)} className="min-h-[72px]" />
                 {p.language !== "English" && (
-                  <p dir="auto" className="mt-1 text-[12.5px] text-slate-400">
+                  <p dir="auto" className="mt-1 text-[13.5px] text-slate-400">
                     Original ({p.language}), stored with the case: {p.original}
                   </p>
                 )}
               </div>
-              {p.cues.length > 0 && <div className="text-[12.5px] text-slate-400"><Advisory>AI urgency cues</Advisory> {p.cues.join(", ")}</div>}
+              {p.cues.length > 0 && <div className="text-[13.5px] text-slate-400"><Advisory>AI urgency cues</Advisory> {p.cues.join(", ")}</div>}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label>Category <span className="text-slate-600">({p.categoryReason})</span></Label>
@@ -239,11 +239,11 @@ export default function IntakePage() {
                 </Select>
               </div>
               {routing && (
-                <div className={cn("rounded-lg border px-3 py-2 text-[13px]", routing.caution ? "border-violet-300/35 bg-violet-500/10" : "border-sky-300/25 bg-sky-400/[0.06]")}>
+                <div className={cn("rounded-lg border px-3 py-2 text-[14px]", routing.caution ? "border-violet-300/35 bg-violet-500/10" : "border-sky-300/25 bg-sky-400/[0.06]")}>
                   <div className="mb-1 flex flex-wrap items-center gap-2 font-medium text-white">
                     Suggested: {routing.bureau} <ArrowRight className="h-3.5 w-3.5" /> {routing.officers.find((o) => o.id === routing.officerId)?.name} <Advisory />
                   </div>
-                  <ul className="list-disc space-y-0.5 pl-5 text-[12.5px] text-slate-300">
+                  <ul className="list-disc space-y-0.5 pl-5 text-[13.5px] text-slate-300">
                     {routing.why.map((w) => (
                       <li key={w}>{w}</li>
                     ))}
@@ -282,23 +282,23 @@ export default function IntakePage() {
 
               {needsDecision && (
                 <section className="rounded-xl border border-violet-300/35 bg-violet-500/[0.08] p-3.5">
-                  <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-violet-100">
+                  <h3 className="flex items-center gap-1.5 text-[15px] font-semibold text-violet-100">
                     <TriangleAlert className="h-4 w-4" /> Similar open cases found <Advisory />
                   </h3>
                   <ul className="mt-2 space-y-2">
                     {similar.map((s) => (
-                      <li key={s.caseId} className="rounded-lg border border-white/[0.08] bg-black/10 p-2.5">
+                      <li key={s.caseId} className="rounded-lg border border-white/[0.08] bg-[#FBF6EC] p-2.5">
                         <label className="flex items-start gap-2">
                           <input type="radio" name="target" checked={targetId === s.caseId} onChange={() => { setTarget(s.caseId); setLead(s.bureau); }} className="mt-1 accent-violet-400" />
                           <span className="min-w-0 flex-1">
                             <span className="flex flex-wrap items-center gap-2">
-                              <span className="num text-[13px] font-semibold text-white">{s.caseId}</span>
+                              <span className="num text-[14px] font-semibold text-white">{s.caseId}</span>
                               <BureauChip code={s.bureau} />
                               <Badge>{s.status}</Badge>
                               <Confidence value={s.confidence} />
                             </span>
-                            <span className="block text-[13px] text-slate-200">{s.subject}</span>
-                            <span className="block text-[12px] text-slate-400">{s.reasons.slice(0, 3).join(" · ")}</span>
+                            <span className="block text-[14px] text-slate-200">{s.subject}</span>
+                            <span className="block text-[13px] text-slate-400">{s.reasons.slice(0, 3).join(" · ")}</span>
                           </span>
                         </label>
                         <AiExplain a={s.caseId} draft={{ subject, text: translation, bureau }} score={s.confidence} reasons={s.reasons} />
@@ -311,7 +311,7 @@ export default function IntakePage() {
                       ["new", "File as new anyway"],
                       ["duplicate", "Mark duplicate"],
                     ].map(([k, l]) => (
-                      <label key={k} className={cn("flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-[13px]", decision === k ? "border-violet-300 bg-violet-500/20 text-white" : "border-white/10 text-slate-300")}>
+                      <label key={k} className={cn("flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-[14px]", decision === k ? "border-violet-300 bg-violet-500/20 text-white" : "border-white/10 text-slate-300")}>
                         <input type="radio" name="decision" checked={decision === k} onChange={() => setDecision(k as typeof decision)} className="accent-violet-400" /> {l}
                       </label>
                     ))}
@@ -338,7 +338,7 @@ export default function IntakePage() {
             </div>
           </Card>
         ) : (
-          <Card className="p-8 text-center text-[13.5px] text-slate-400">The translation, category, institution, routing and any similar open cases appear here for you to confirm. Try “Use sample voice complaint”.</Card>
+          <Card className="p-8 text-center text-[14.5px] text-slate-400">The translation, category, institution, routing and any similar open cases appear here for you to confirm. Try “Use sample voice complaint”.</Card>
         )}
       </div>
     </div>

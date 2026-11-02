@@ -57,6 +57,12 @@ alter table app_state enable row level security;
 
 The first request seeds an empty table. Each write sends the whole state (about 1.3 MB) with a version check; if another instance wrote first, the change is reloaded, re-applied and retried once. From a machine far from the database a write can take several seconds, so leave the Supabase variables out of `.env.local` for fast local work. Without them on Vercel the app runs from memory and shows a "demo data resets on restart" banner.
 
+### Design notes
+
+The UI is a warm light theme ("parchment and marigold"). `tailwind.config.ts` remaps the colour scales instead of renaming classes, so **`text-white` and `bg-white` now produce dark ink**, and the slate, emerald, red and similar scales run dark to light. Use `bg-paper` or `text-paper` when you need the light colour.
+
+`/cases` opens on the journey map, which shows each complaint's stage and deadline. The **Table** tab (`/cases?view=table`) has every tracking column, including the officer and status.
+
 ## Sign-in and roles
 
 One page, `/login`, for everyone. The server takes role, region and officer only from a signed, httpOnly cookie (8 hours, 2 for students). `x-role` style headers and query parameters are ignored. The "Demo accounts" panel fills the form for each role below.
@@ -88,7 +94,7 @@ Roles are enforced on the server for pages (middleware redirect) and APIs (403 J
 | # | Requirement | Where |
 | --- | --- | --- |
 | 1 | Centralised institution profile: Permanent ID, name, address, region, consolidated history | `/institutions`, `/institutions/[id]` (profile, all-unit history table, cross-unit timeline, names/IDs complainants used) |
-| 2 | Case tracking: Case ID, date received, category, status, bureau/cell, officer, last action, next action, date of last action, expected disposal | `/cases` table + case drawer; CSV export of all fields |
+| 2 | Case tracking: Case ID, date received, category, status, bureau/cell, officer, last action, next action, date of last action, expected disposal | `/cases` journey map and table + case drawer; CSV export of all fields |
 | 3 | Cross-bureau overlap detection with reasons and confidence; link/map and mark coordinated | `/overlaps`, overlap feed on `/`, drawer callout; manual “Link to another case” in drawer · engine in `lib/overlap.ts` |
 | 4 | Real-time dashboard: received, pending, under process, disposed, transferred, escalated, beyond timeline, institution-wise status, bureau workload; 5 s refresh; simulate button | `/` |
 | 5 | Workflow and action history with officer/bureau, timestamp, remarks, documents, transfer/escalation | Case drawer timeline; documents uploaded to `data/uploads` or Supabase Storage, downloadable with role check |

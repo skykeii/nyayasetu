@@ -123,7 +123,7 @@ export interface Report {
   rows: Record<string, unknown>[];
 }
 
-const C = { saffron: "#FF9933", indigo: "#818CF8", emerald: "#34D399", red: "#F87171", amber: "#FBBF24", violet: "#A78BFA", sky: "#38BDF8" };
+const C = { saffron: "#CC6A22", indigo: "#53659A", emerald: "#4C8040", red: "#BE4A32", amber: "#C2831A", violet: "#9C4E7C", sky: "#357D7A" };
 
 export const REPORT_KEYS = [
   ["bureau", "Bureau / Cell-wise"],

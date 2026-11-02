@@ -8,7 +8,7 @@ export function BotCheck({ onVerify }: { onVerify: (token: string) => void }) {
   const done = v >= 100;
   return (
     <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5">
-      <div className="mb-1.5 flex items-center gap-2 text-[12.5px] text-slate-300">
+      <div className="mb-1.5 flex items-center gap-2 text-[13.5px] text-slate-300">
         <ShieldCheck className={done ? "h-4 w-4 text-emerald-300" : "h-4 w-4 text-slate-500"} />
         {done ? "Verified (mock bot check)" : "Slide all the way to confirm you are not a bot"}
       </div>

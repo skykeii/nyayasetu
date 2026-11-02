@@ -35,8 +35,8 @@ function InstitutionsPage() {
   return (
     <div className="mx-auto max-w-[1480px] space-y-4">
       <div>
-        <h1 className="text-[26px] font-bold tracking-tight text-white">Institutions</h1>
-        <p className="text-[13.5px] text-slate-400">
+        <h1 className="text-[34px] leading-[1.1] tracking-tight text-white">Institutions</h1>
+        <p className="text-[14.5px] text-slate-400">
           One profile per AICTE Permanent ID, consolidating complaints from every bureau and cell{role === "ro" ? ` in the ${myRegion} region` : ""}.
         </p>
       </div>
@@ -56,13 +56,13 @@ function InstitutionsPage() {
       </Card>
       {error && <ErrorNote msg={error} />}
       <Card className="overflow-hidden">
-        <div className="px-5 py-3 text-[13px] text-slate-400">
+        <div className="px-5 py-3 text-[14px] text-slate-400">
           <span className="num font-semibold text-white">{data?.total ?? "…"}</span> institutions
         </div>
         <div className="scroll-thin overflow-x-auto">
-          <table className="w-full min-w-[1140px] text-[13px]">
+          <table className="w-full min-w-[1140px] text-[14px]">
             <thead>
-              <tr className="border-y border-white/[0.06] text-left text-[12px] text-slate-500">
+              <tr className="border-y border-white/[0.06] text-left text-[13px] text-slate-500">
                 <th className="px-5 py-2.5 font-medium">Institution</th>
                 <th className="px-2 py-2.5 font-medium">Location</th>
                 <th className="px-2 py-2.5 font-medium">Type</th>
@@ -90,13 +90,13 @@ function InstitutionsPage() {
                     <Link href={`/institutions/${i.id}`} className="block truncate font-medium text-slate-100 hover:text-saffron">
                       {i.name}
                     </Link>
-                    <span className="num text-[11.5px] text-slate-500">
+                    <span className="num text-[12.5px] text-slate-500">
                       {i.id} · {i.shortName}
                     </span>
                   </td>
                   <td className="px-2 py-2.5 text-slate-300">
                     {i.city}, {i.state}
-                    <div className="text-[11.5px] text-slate-500">{i.region}</div>
+                    <div className="text-[12.5px] text-slate-500">{i.region}</div>
                   </td>
                   <td className="px-2 py-2.5 text-slate-400">{i.type}</td>
                   <td className="num px-2 py-2.5 text-right">{i.total}</td>

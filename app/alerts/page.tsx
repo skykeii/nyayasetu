@@ -59,13 +59,13 @@ export default function AlertsPage() {
     <div className="mx-auto max-w-[1180px] space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-white">Alerts and notifications</h1>
-          <p className="text-[13.5px] text-slate-400">
+          <h1 className="text-[34px] leading-[1.1] tracking-tight text-white">Alerts and notifications</h1>
+          <p className="text-[14.5px] text-slate-400">
             Generated continuously from case data. Reminders fire after {meta?.settings.reminderNoActionDays ?? 14} days without action; due-soon warnings start {meta?.settings.warningWindowDays ?? 5} days before disposal date.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2 text-[13px] text-slate-300">
+          <label className="flex items-center gap-2 text-[14px] text-slate-300">
             <input type="checkbox" checked={unreadOnly} onChange={(e) => setUnreadOnly(e.target.checked)} className="accent-saffron" /> Unread only
           </label>
           <Button variant="secondary" size="sm" onClick={() => mark({ all: true })}>
@@ -97,14 +97,14 @@ export default function AlertsPage() {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[14px] font-semibold text-white">{a.title}</span>
+                  <span className="text-[15px] font-semibold text-white">{a.title}</span>
                   {!a.read && <span className="h-1.5 w-1.5 rounded-full bg-saffron" aria-label="unread" />}
                 </div>
-                <div className="text-[13px] text-slate-300">{a.message}</div>
-                <div className="mt-0.5 text-[12px] text-slate-500">{fmtDateTime(a.at)}</div>
+                <div className="text-[14px] text-slate-300">{a.message}</div>
+                <div className="mt-0.5 text-[13px] text-slate-500">{fmtDateTime(a.at)}</div>
               </div>
               <div className="flex shrink-0 items-center gap-1">
-                <Link href={a.href} onClick={() => !a.read && mark({ ids: [a.id] })} className="rounded-lg px-3 py-1.5 text-[13px] font-medium text-saffron hover:bg-white/[0.05]">
+                <Link href={a.href} onClick={() => !a.read && mark({ ids: [a.id] })} className="rounded-lg px-3 py-1.5 text-[14px] font-medium text-saffron hover:bg-white/[0.05]">
                   Open
                 </Link>
                 {!a.read && (

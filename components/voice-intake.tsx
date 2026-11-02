@@ -182,13 +182,13 @@ export function VoiceIntake({ value, onChange }: { value: VoiceValue; onChange: 
           <Sparkles className="h-4 w-4" /> Use sample voice complaint
         </Button>
         {recording && (
-          <span className="inline-flex items-center gap-2 text-[12.5px] text-red-300">
+          <span className="inline-flex items-center gap-2 text-[13.5px] text-red-300">
             <span className="h-2 w-2 animate-pulse rounded-full bg-red-400" /> Listening in {languageName(value.language)}
             {seconds > 0 && <span className="num">{seconds}s of {MAX_SECONDS}s</span>}
           </span>
         )}
       </div>
-      {note && value.text !== undefined && <p className="text-[12.5px] text-slate-400">{note}</p>}
+      {note && value.text !== undefined && <p className="text-[13.5px] text-slate-400">{note}</p>}
       <div>
         <Label>Complaint (typed, or the voice transcript; you can correct it)</Label>
         <Textarea value={value.text} rows={5} dir="auto" placeholder="Describe the problem: what happened, where, and since when." className="min-h-[120px]" onChange={(e) => onChange({ ...value, text: e.target.value, sampleId: undefined })} />

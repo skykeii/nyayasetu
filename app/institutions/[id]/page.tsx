@@ -53,7 +53,7 @@ export default function InstitutionProfile({ params }: { params: { id: string } 
   return (
     <div className="mx-auto max-w-[1480px] space-y-5">
       <div className="flex items-center justify-between">
-        <Link href="/institutions" className="no-print inline-flex items-center gap-1.5 text-[13px] text-slate-400 hover:text-white">
+        <Link href="/institutions" className="no-print inline-flex items-center gap-1.5 text-[14px] text-slate-400 hover:text-white">
           <ArrowLeft className="h-4 w-4" /> Institutions
         </Link>
         <Button variant="secondary" size="sm" onClick={() => window.print()} className="no-print">
@@ -62,16 +62,16 @@ export default function InstitutionProfile({ params }: { params: { id: string } 
       </div>
 
       <div className="hidden print:block">
-        <div className="text-[13px] font-semibold">NyayaSetu institution report. Synthetic demo data.</div>
-        <div className="text-[12px]">Printed {fmtDateTime(new Date().toISOString())}. Covers the cases this role can see. Machine scores are advisory; final decisions rest with the competent authority.</div>
+        <div className="text-[14px] font-semibold">NyayaSetu institution report. Synthetic demo data.</div>
+        <div className="text-[13px]">Printed {fmtDateTime(new Date().toISOString())}. Covers the cases this role can see. Machine scores are advisory; final decisions rest with the competent authority.</div>
       </div>
 
       <Card className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-[26px] font-bold leading-tight tracking-tight text-white">{i.name}</h1>
-            <div className="num mt-1 text-[14px] text-saffron-300">AICTE Permanent ID {i.id}</div>
-            <div className="mt-1 text-[13.5px] text-slate-400">{i.address}</div>
+            <h1 className="text-[34px] leading-[1.1] leading-tight tracking-tight text-white">{i.name}</h1>
+            <div className="num mt-1 text-[15px] text-saffron-300">AICTE Permanent ID {i.id}</div>
+            <div className="mt-1 text-[14.5px] text-slate-400">{i.address}</div>
           </div>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-4">
             <Fact k="Region" v={i.region} />
@@ -89,31 +89,31 @@ export default function InstitutionProfile({ params }: { params: { id: string } 
             { l: "Overlap clusters", v: data.clusters.filter((c) => c.status === "Open").length, t: "text-violet-300" },
           ].map((s) => (
             <div key={s.l}>
-              <div className="text-[12.5px] text-slate-400">{s.l}</div>
-              <CountUp value={s.v} className={cn("text-[24px] font-bold", s.t)} />
+              <div className="text-[13.5px] text-slate-400">{s.l}</div>
+              <CountUp value={s.v} className={cn("text-[28px] leading-tight", s.t)} />
             </div>
           ))}
         </div>
         {(data.aliases.length > 0 || data.pidVariants.length > 0) && (
-          <div className="mt-4 rounded-lg border border-white/[0.07] bg-white/[0.02] px-4 py-3">
-            <div className="mb-2 flex items-center gap-2 text-[13px] text-slate-300">
+          <div className="mt-4 rounded-lg border border-[#EADFCD] bg-[#FBF6EC] px-4 py-3">
+            <div className="mb-2 flex items-center gap-2 text-[14px] text-slate-300">
               Complainants also referred to this institution as <Advisory>matched by fuzzy name / ID</Advisory>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {data.aliases.map((a) => (
-                <span key={a} className="rounded-md border border-white/10 bg-black/20 px-2 py-0.5 text-[12.5px] text-slate-300">
+                <span key={a} className="rounded-md border border-white/10 bg-[#FBF6EC] px-2 py-0.5 text-[13.5px] text-slate-300">
                   “{a}”
                 </span>
               ))}
               {data.pidVariants.map((p) => (
-                <span key={p} className="num rounded-md border border-amber-300/30 bg-amber-400/10 px-2 py-0.5 text-[12.5px] text-amber-200">
+                <span key={p} className="num rounded-md border border-amber-300/30 bg-amber-400/10 px-2 py-0.5 text-[13.5px] text-amber-200">
                   ID quoted as {p}
                 </span>
               ))}
             </div>
           </div>
         )}
-        {data.hiddenCount > 0 && <div className="mt-3 text-[12.5px] text-slate-500">{data.hiddenCount} further case(s) on this institution sit with units outside your role&apos;s visibility.</div>}
+        {data.hiddenCount > 0 && <div className="mt-3 text-[13.5px] text-slate-500">{data.hiddenCount} further case(s) on this institution sit with units outside your role&apos;s visibility.</div>}
       </Card>
 
       <RiskPanel risk={data.risk} />
@@ -122,19 +122,20 @@ export default function InstitutionProfile({ params }: { params: { id: string } 
         <Card>
           <CardHeader title="Overlapping cases on this institution" sub="Complaints about the same issue sitting with more than one unit" />
           <div className="space-y-3 px-5 pb-5">
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
+            <div className="rounded-2xl border border-[#EADFCD] bg-[#FBF6EC] p-3">
               <OverlapGraph clusters={data.clusters} cases={caseById} onOpen={setOpen} />
             </div>
             {data.clusters.map((cl) => (
-              <div key={cl.id} className={cn("rounded-xl border p-3.5", cl.status === "Open" ? "border-violet-400/30 bg-violet-500/[0.05]" : "border-white/[0.07]")}>
+              <div key={cl.id} className="border-t border-[#EADFCD] pt-4">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[13px] font-medium text-violet-200">{cl.kind === "cross-bureau" ? "Potential Overlapping Cases – Coordination Required" : "Possible duplicate registration"}</span>
+                  <span className="text-[14px] font-medium text-violet-200">{cl.kind === "cross-bureau" ? "Potential Overlapping Cases – Coordination Required" : "Possible duplicate registration"}</span>
                   <span className="flex items-center gap-2">
                     <Badge tone={cl.status === "Open" ? "violet" : "emerald"}>{cl.status}</Badge>
                     <Confidence value={cl.confidence} />
                   </span>
                 </div>
                 <OverlapBridge
+                  pairs={cl.pairs}
                   status={cl.status}
                   onOpen={setOpen}
                   cases={cl.caseIds.map((id) => {
@@ -158,8 +159,8 @@ export default function InstitutionProfile({ params }: { params: { id: string } 
               stacked
               height={220}
               series={[
-                { key: "open", label: "Open", color: "#FBBF24" },
-                { key: "disposed", label: "Disposed", color: "#34D399" },
+                { key: "open", label: "Open", color: "#C2831A" },
+                { key: "disposed", label: "Disposed", color: "#4C8040" },
               ]}
             />
           </div>
@@ -167,7 +168,7 @@ export default function InstitutionProfile({ params }: { params: { id: string } 
         <Card>
           <CardHeader title="By category" sub="Nature of complaints received" />
           <div className="px-3 pb-3">
-            <BarsChart data={data.byCategory} x="category" horizontal height={Math.max(160, data.byCategory.length * 34 + 40)} series={[{ key: "count", label: "Complaints", color: "#818CF8" }]} />
+            <BarsChart data={data.byCategory} x="category" horizontal height={Math.max(160, data.byCategory.length * 34 + 40)} series={[{ key: "count", label: "Complaints", color: "#53659A" }]} />
           </div>
         </Card>
       </div>
@@ -176,9 +177,9 @@ export default function InstitutionProfile({ params }: { params: { id: string } 
         <Card className="overflow-hidden">
           <CardHeader title="Consolidated complaint history" sub="All bureaus and cells, newest first" />
           <div className="scroll-thin overflow-x-auto">
-            <table className="w-full min-w-[840px] text-[13px]">
+            <table className="w-full min-w-[840px] text-[14px]">
               <thead>
-                <tr className="border-y border-white/[0.06] text-left text-[12px] text-slate-500">
+                <tr className="border-y border-white/[0.06] text-left text-[13px] text-slate-500">
                   <th className="px-5 py-2 font-medium">Case</th>
                   <th className="px-2 py-2 font-medium">Received</th>
                   <th className="px-2 py-2 font-medium">Subject</th>
@@ -194,7 +195,7 @@ export default function InstitutionProfile({ params }: { params: { id: string } 
                     <td className="num whitespace-nowrap px-2 py-2 text-slate-400">{fmtDate(c.dateReceived)}</td>
                     <td className="max-w-[280px] px-2 py-2">
                       <div className="truncate text-slate-200">{c.subject}</div>
-                      <div className="text-[11.5px] text-slate-500">{c.category}</div>
+                      <div className="text-[12.5px] text-slate-500">{c.category}</div>
                     </td>
                     <td className="px-2 py-2">
                       <BureauChip code={c.bureau} />
@@ -216,16 +217,16 @@ export default function InstitutionProfile({ params }: { params: { id: string } 
           <ol className="relative mx-5 mb-5 border-l border-white/10">
             {data.timeline.slice(0, 18).map((a) => (
               <li key={`${a.caseId}-${a.id}`} className="mb-3 ml-4">
-                <span className="absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full border border-white/20 bg-[#141B33]" />
-                <div className="flex flex-wrap items-center gap-1.5 text-[12.5px]">
+                <span className="absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full border border-white/20 bg-[#FFFCF5]" />
+                <div className="flex flex-wrap items-center gap-1.5 text-[13.5px]">
                   <BureauChip code={a.bureau === "SYSTEM" ? a.caseBureau : a.bureau} />
                   <span className="font-medium text-white">{a.type}</span>
                   <button onClick={() => setOpen(a.caseId)} className="num text-slate-400 hover:text-saffron">
                     {a.caseId}
                   </button>
                 </div>
-                <div className="line-clamp-2 text-[12.5px] text-slate-400">{a.remarks}</div>
-                <div className="text-[11.5px] text-slate-500">
+                <div className="line-clamp-2 text-[13.5px] text-slate-400">{a.remarks}</div>
+                <div className="text-[12.5px] text-slate-500">
                   {fmtDateTime(a.at)} · {a.by}
                 </div>
               </li>

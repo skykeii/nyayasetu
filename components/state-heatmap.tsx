@@ -33,8 +33,8 @@ const CALLOUT_OFFSET: Record<string, [number, number]> = {
   "Dadra & Nagar Haveli and Daman & Diu": [-88, 26],
 };
 
-const LOW = [38, 46, 74];
-const HUES: Record<Metric, number[]> = { density: [255, 153, 51], ageing: [255, 153, 51], disposal: [52, 211, 153] };
+const LOW = [236, 212, 172];
+const HUES: Record<Metric, number[]> = { density: [150, 52, 24], ageing: [150, 52, 24], disposal: [47, 82, 40] };
 
 export function formatMetric(row: AreaRow, m: Metric) {
   return `${row[m]}${METRICS.find((x) => x.key === m)!.unit}`;
@@ -91,8 +91,8 @@ export function StateHeatmap({ rows, metric, selected, onSelect, className }: { 
       <svg ref={svg} viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} className="h-auto w-full max-w-[640px]" role="group" aria-label={`Map of India by state, coloured by ${def.label}`}>
         {INSET_BOXES.map((b) => (
           <g key={b.label}>
-            <rect x={b.x} y={b.y} width={b.w} height={b.h} rx={8} fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
-            <text x={b.x + 6} y={b.y + 13} fontSize={11} fill="#8b93ab">
+            <rect x={b.x} y={b.y} width={b.w} height={b.h} rx={8} fill="rgba(80,55,30,0.025)" stroke="rgba(80,55,30,0.22)" strokeDasharray="4 4" />
+            <text x={b.x + 6} y={b.y + 13} fontSize={11} fill="#74655A">
               {b.label}
             </text>
           </g>
@@ -100,7 +100,7 @@ export function StateHeatmap({ rows, metric, selected, onSelect, className }: { 
         {INDIA_SHAPES.map((s, i) => {
           const r = byState.get(s.name);
           const has = !!r && r.total > 0;
-          const fill = has ? shade(r![metric]).fill : "rgba(255,255,255,0.04)";
+          const fill = has ? shade(r![metric]).fill : "#E3DDD2";
           const active = selected === s.name || hover?.shape.name === s.name;
           return (
             <path
@@ -109,8 +109,8 @@ export function StateHeatmap({ rows, metric, selected, onSelect, className }: { 
               d={s.d}
               className={cn("map-shape focus:outline-none", has && "cursor-pointer", active && "map-shape-active")}
               style={{ fill, animationDelay: `${i * 18}ms` }}
-              stroke={selected === s.name ? "#ffffff" : "rgba(10,15,30,0.9)"}
-              strokeWidth={selected === s.name ? 1.8 : 0.7}
+              stroke={selected === s.name ? "#241B14" : "#7A6A58"}
+              strokeWidth={selected === s.name ? 1.8 : 0.6}
             />
           );
         })}
@@ -123,17 +123,17 @@ export function StateHeatmap({ rows, metric, selected, onSelect, className }: { 
           const col = has ? shade(r![metric]) : null;
           return (
             <g key={`${s.name}-callout`} {...interact(s, has, x, y - 10)} className={cn("focus:outline-none", has && "cursor-pointer")}>
-              <line x1={s.cx} y1={s.cy} x2={x} y2={y} stroke="rgba(255,255,255,0.45)" strokeWidth={1} />
-              <circle cx={s.cx} cy={s.cy} r={2.5} fill="#fff" />
-              <rect x={x - 20} y={y - 10} width={40} height={20} rx={6} fill={col ? col.fill : "#141B33"} stroke={selected === s.name ? "#fff" : "rgba(255,255,255,0.35)"} />
-              <text x={x} y={y + 4} textAnchor="middle" fontSize={11} fontWeight={700} fill={col && col.t > 0.55 ? "#0A0F1E" : "#e7eaf3"}>
+              <line x1={s.cx} y1={s.cy} x2={x} y2={y} stroke="rgba(80,55,30,0.45)" strokeWidth={1} />
+              <circle cx={s.cx} cy={s.cy} r={2.5} fill="#4F4338" />
+              <rect x={x - 20} y={y - 10} width={40} height={20} rx={6} fill={col ? col.fill : "#FFFCF5"} stroke={selected === s.name ? "#241B14" : "rgba(80,55,30,0.35)"} />
+              <text x={x} y={y + 4} textAnchor="middle" fontSize={11} fontWeight={700} fill={col && col.t > 0.55 ? "#FFFCF5" : "#2C231C"}>
                 {s.code}
               </text>
             </g>
           );
         })}
       </svg>
-      <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-slate-400">
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-slate-400">
         <span className="num">
           {min}
           {def.unit}
@@ -145,12 +145,12 @@ export function StateHeatmap({ rows, metric, selected, onSelect, className }: { 
           {def.unit}
         </span>
         <span className="text-slate-500">
-          {def.hint}. {def.higherIsBetter ? "Brighter is better." : "Brighter is worse."} Unfilled shapes have no institutions in this demo.
+          {def.hint}. {def.higherIsBetter ? "Deeper is better." : "Deeper is worse."} Grey shapes have no institutions in this demo.
         </span>
       </div>
-      <p className="mt-1 text-[11px] text-slate-600">Boundaries: DataMeet India community, CC BY 4.0. Indicative only, not an official Survey of India map; the J&amp;K and Ladakh internal line is approximate.</p>
+      <p className="mt-1 text-[12px] text-slate-600">Boundaries: DataMeet India community, CC BY 4.0. Indicative only, not an official Survey of India map; the J&amp;K and Ladakh internal line is approximate.</p>
       {hover && (
-        <div className="glass-strong pointer-events-none absolute z-20 w-56 -translate-x-1/2 -translate-y-full rounded-lg px-3 py-2 text-[12.5px] shadow-xl" style={{ left: hover.x, top: hover.y - 8 }}>
+        <div className="glass-strong pointer-events-none absolute z-20 w-56 -translate-x-1/2 -translate-y-full rounded-lg px-3 py-2 text-[13.5px] shadow-xl" style={{ left: hover.x, top: hover.y - 8 }}>
           <div className="font-semibold text-white">{hover.shape.name}</div>
           {row && row.total > 0 ? (
             <div className="num mt-0.5 space-y-0.5 text-slate-300">

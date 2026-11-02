@@ -41,8 +41,8 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-[980px] space-y-5">
       <div>
-        <h1 className="text-[26px] font-bold tracking-tight text-white">SLA settings</h1>
-        <p className="text-[13.5px] text-slate-400">Disposal timelines per complaint category drive due dates, reminders, escalation alerts and every SLA report.</p>
+        <h1 className="text-[34px] leading-[1.1] tracking-tight text-white">SLA settings</h1>
+        <p className="text-[14.5px] text-slate-400">Disposal timelines per complaint category drive due dates, reminders, escalation alerts and every SLA report.</p>
       </div>
       <Card>
         <CardHeader title="Disposal timeline by category" sub="Days from receipt to expected disposal" />
@@ -54,7 +54,7 @@ export default function SettingsPage() {
               </Label>
               <div className="flex items-center gap-2">
                 <Input type="number" min={1} max={365} value={s.slaDays[cat]} onChange={(e) => setS({ ...s, slaDays: { ...s.slaDays, [cat]: Number(e.target.value) } })} className="w-28" disabled={role !== "ca"} />
-                <span className="text-[13px] text-slate-400">days</span>
+                <span className="text-[14px] text-slate-400">days</span>
               </div>
             </div>
           ))}
@@ -67,20 +67,20 @@ export default function SettingsPage() {
             <Label>Pending reminder after no action for</Label>
             <div className="flex items-center gap-2">
               <Input type="number" min={1} max={90} value={s.reminderNoActionDays} onChange={(e) => setS({ ...s, reminderNoActionDays: Number(e.target.value) })} className="w-24" disabled={role !== "ca"} />
-              <span className="text-[13px] text-slate-400">days</span>
+              <span className="text-[14px] text-slate-400">days</span>
             </div>
           </div>
           <div>
             <Label>Due-soon warning starts</Label>
             <div className="flex items-center gap-2">
               <Input type="number" min={0} max={30} value={s.warningWindowDays} onChange={(e) => setS({ ...s, warningWindowDays: Number(e.target.value) })} className="w-24" disabled={role !== "ca"} />
-              <span className="text-[13px] text-slate-400">days before</span>
+              <span className="text-[14px] text-slate-400">days before</span>
             </div>
           </div>
           <div>
             <Label>Overlap alert threshold</Label>
             <input type="range" min={0.4} max={0.95} step={0.01} value={s.overlapMinConfidence} onChange={(e) => setS({ ...s, overlapMinConfidence: Number(e.target.value) })} className="w-full accent-violet-400" disabled={role !== "ca"} />
-            <div className="num text-[13px] text-violet-200">{Math.round(s.overlapMinConfidence * 100)}% minimum confidence</div>
+            <div className="num text-[14px] text-violet-200">{Math.round(s.overlapMinConfidence * 100)}% minimum confidence</div>
           </div>
         </div>
       </Card>
@@ -98,7 +98,7 @@ export default function SettingsPage() {
               <Label>{label}</Label>
               <div className="flex items-center gap-2">
                 <Input type="number" min={1} max={30} value={s.collegeReminders[key]} onChange={(e) => setS({ ...s, collegeReminders: { ...s.collegeReminders, [key]: Number(e.target.value) } })} className="w-24" disabled={role !== "ca"} />
-                <span className="text-[13px] text-slate-400">days</span>
+                <span className="text-[14px] text-slate-400">days</span>
               </div>
             </div>
           ))}
@@ -106,14 +106,14 @@ export default function SettingsPage() {
             <Label>Student verification window</Label>
             <div className="flex items-center gap-2">
               <Input type="number" min={1} max={30} value={s.verifyWindowDays} onChange={(e) => setS({ ...s, verifyWindowDays: Number(e.target.value) })} className="w-24" disabled={role !== "ca"} />
-              <span className="text-[13px] text-slate-400">days, then Closed - Unverified</span>
+              <span className="text-[14px] text-slate-400">days, then Closed - Unverified</span>
             </div>
           </div>
           <div>
             <Label>AICTE escalation after overdue</Label>
             <div className="flex items-center gap-2">
               <Input type="number" min={0} max={30} value={s.escalationGraceDays} onChange={(e) => setS({ ...s, escalationGraceDays: Number(e.target.value) })} className="w-24" disabled={role !== "ca"} />
-              <span className="text-[13px] text-slate-400">days</span>
+              <span className="text-[14px] text-slate-400">days</span>
             </div>
           </div>
         </div>
@@ -126,7 +126,7 @@ export default function SettingsPage() {
           <Save className="h-4 w-4" /> Save settings
         </Button>
       </div>
-      {role !== "ca" && <p className="text-[13px] text-slate-500">Only the Competent Authority can change these settings.</p>}
+      {role !== "ca" && <p className="text-[14px] text-slate-500">Only the Competent Authority can change these settings.</p>}
     </div>
   );
 }

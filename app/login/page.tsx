@@ -96,8 +96,8 @@ export default function LoginPage() {
         <div className="flex items-center gap-3">
           <BridgeMark className="h-11 w-11" />
           <div>
-            <h1 className="text-[24px] font-bold tracking-tight text-white">Sign in to NyayaSetu</h1>
-            <p className="text-[13.5px] text-slate-400">One window for every institution complaint</p>
+            <h1 className="text-[28px] leading-tight tracking-tight text-white">Sign in to NyayaSetu</h1>
+            <p className="text-[14.5px] text-slate-400">One window for every institution complaint</p>
           </div>
         </div>
         <div role="radiogroup" aria-label="Sign in as" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -106,7 +106,7 @@ export default function LoginPage() {
               <span style={{ color: ROLES[r].accent }}>
                 <I className="h-5 w-5" />
               </span>
-              <span className="mt-1.5 block text-[12.5px] font-medium leading-tight text-white">{ROLES[r].short}</span>
+              <span className="mt-1.5 block text-[13.5px] font-medium leading-tight text-white">{ROLES[r].short}</span>
             </button>
           ))}
         </div>
@@ -150,7 +150,7 @@ export default function LoginPage() {
                   <Input value={otp} onChange={(e) => setOtp(e.target.value)} inputMode="numeric" maxLength={6} autoFocus className="num tracking-[0.3em]" autoComplete="one-time-code" />
                 </div>
               )}
-              {err && <p role="alert" className="text-[13px] text-red-300">{err}</p>}
+              {err && <p role="alert" className="text-[14px] text-red-300">{err}</p>}
               <Button type="submit" variant="primary" className="w-full" loading={busy} disabled={otpSent ? otp.length !== 6 : !bot}>
                 {otpSent ? <ShieldCheck className="h-4 w-4" /> : <KeyRound className="h-4 w-4" />}
                 {otpSent ? "Verify and sign in" : "Send OTP"}
@@ -181,14 +181,14 @@ export default function LoginPage() {
                   </div>
                 </>
               )}
-              {err && <p role="alert" className="text-[13px] text-red-300">{err}</p>}
+              {err && <p role="alert" className="text-[14px] text-red-300">{err}</p>}
               <Button type="submit" variant="primary" className="w-full" loading={busy} disabled={challenge ? code.length !== 6 : !email || !password}>
                 <ShieldCheck className="h-4 w-4" /> {challenge ? "Verify" : `Sign in as ${ROLES[role].short}`}
               </Button>
             </form>
           )}
         </Card>
-        <p className="text-[12.5px] text-slate-500">
+        <p className="text-[13.5px] text-slate-500">
           <span className="rounded border border-amber-300/40 bg-amber-400/10 px-1.5 py-0.5 font-semibold text-amber-200">Synthetic demo data</span> Not connected to any AICTE system.{" "}
           <Link href="/security" className="text-slate-300 underline hover:text-white">
             Security &amp; Privacy
@@ -197,7 +197,7 @@ export default function LoginPage() {
       </div>
       <Card className="p-5">
         <h2 className="text-[15px] font-semibold text-white">Demo accounts</h2>
-        <p className="mb-3 text-[13px] text-slate-400">
+        <p className="mb-3 text-[14px] text-slate-400">
           Select one to fill the form. Shared password for officials: <span className="num font-semibold text-white">{DEMO_PASSWORD}</span>
         </p>
         <ul className="space-y-1">
@@ -213,11 +213,11 @@ export default function LoginPage() {
               >
                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ROLES[d.role].accent }} />
                 <span className="min-w-0">
-                  <span className="block text-[13px] font-medium text-white">
+                  <span className="block text-[14px] font-medium text-white">
                     {d.label}
                     {d.note && <span className="font-normal text-slate-500"> · {d.note}</span>}
                   </span>
-                  <span className="block truncate text-[12px] text-slate-400">{d.email}</span>
+                  <span className="block truncate text-[13px] text-slate-400">{d.email}</span>
                 </span>
               </button>
             </li>
@@ -234,8 +234,8 @@ export default function LoginPage() {
               >
                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ROLES.student.accent }} />
                 <span className="min-w-0">
-                  <span className="block text-[13px] font-medium text-white">Student {i + 1} · OTP 123456</span>
-                  <span className="num block text-[12px] text-slate-400">
+                  <span className="block text-[14px] font-medium text-white">Student {i + 1} · OTP 123456</span>
+                  <span className="num block text-[13px] text-slate-400">
                     {d.apaarId} · {d.mobile}
                   </span>
                 </span>
