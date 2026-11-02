@@ -333,18 +333,17 @@ export function sweepStudentLayer() {
   const now = Date.now();
   const cfg = db.settings;
   const nodal = (id: string) => db.signals.find((x) => x.institutionId === id)?.nodalOfficer ?? "Nodal officer";
-  const due = db.studentComplaints.filter((s) => {
+  const isDue = (s: StudentComplaint) => {
     if (s.status === "Resolved - Pending Verification") return !!s.verifyBy && now > new Date(s.verifyBy).getTime();
     if (s.status !== "With College") return false;
     const dueMs = new Date(s.dueAt).getTime();
     if (now > dueMs && s.escalationLevel === 0) return true;
     if (now > dueMs + cfg.escalationGraceDays * DAY) return true;
     return now - new Date(s.lastReminderAt ?? s.createdAt).getTime() >= reminderGap(s, now, cfg.collegeReminders) * DAY;
-  });
-  if (!due.length) return;
+  };
+  if (!db.studentComplaints.some(isDue)) return;
   mutate((d) => {
-    for (const s0 of due) {
-      const s = d.studentComplaints.find((x) => x.id === s0.id)!;
+    for (const s of d.studentComplaints.filter(isDue)) {
       const at = iso(now);
       if (s.status === "Resolved - Pending Verification") {
         s.status = "Closed - Unverified";

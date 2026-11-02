@@ -15,7 +15,13 @@ export function withApi<P = unknown>(fn: (req: Request, ctx: { params: P }) => P
       return await runWithStore(async () => {
         await hydrate();
         const res = await fn(req, ctx);
-        await flush();
+        try {
+          await flush();
+        } catch (e) {
+          // reads only write bookkeeping (view audit, reminders); the answer is still good
+          if (req.method !== "GET") throw e;
+          console.error("[nyayasetu] could not save after a read", (e as Error).message);
+        }
         return res;
       });
     } catch (e) {

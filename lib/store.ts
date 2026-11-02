@@ -12,6 +12,7 @@ const DB_FILE = path.join(DATA_DIR, "db.json");
 export const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 const CACHE_MS = 3000;
 const DB_TIMEOUT = 25000;
+const WRITE_ATTEMPTS = 5;
 const TABLE = "app_state";
 
 type Mutation = (db: Db) => unknown;
@@ -117,7 +118,7 @@ async function hydrateOnce() {
   g.__nyayasetu = { db: row.db, schema: SCHEMA_VERSION, rowVersion: row.rowVersion, checkedAt: Date.now() };
 }
 
-/** Saves this request's mutations with an optimistic version check. On conflict it reloads, re-applies and retries once. */
+/** Saves this request's mutations with an optimistic version check. On conflict it reloads, re-applies and retries. */
 export async function flush() {
   const sb = supabaseClient();
   const scope = requestScope.getStore();
@@ -143,7 +144,7 @@ async function writeRow(sb: SupabaseClient, scope: { pending: Mutation[] }) {
 }
 
 async function attemptWrite(sb: SupabaseClient, scope: { pending: Mutation[] }) {
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < WRITE_ATTEMPTS; attempt++) {
     const h = g.__nyayasetu!;
     const next = h.rowVersion + 1;
     const res = await sb.from(TABLE).update({ data: serialize(h.db!), version: next, updated_at: new Date().toISOString() }).eq("id", 1).eq("version", h.rowVersion).select("version");
@@ -154,7 +155,8 @@ async function attemptWrite(sb: SupabaseClient, scope: { pending: Mutation[] }) 
       scope.pending = [];
       return;
     }
-    if (attempt === 1) break;
+    if (attempt === WRITE_ATTEMPTS - 1) break;
+    await new Promise((r) => setTimeout(r, 80 + Math.random() * 220 * (attempt + 1)));
     const row = await loadRow(sb);
     for (const fn of scope.pending) fn(row.db);
     row.db.version += scope.pending.length;
