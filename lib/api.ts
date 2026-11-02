@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { z } from "zod";
 import { flush, hydrate, runWithStore } from "./store";
 
@@ -15,13 +16,9 @@ export function withApi<P = unknown>(fn: (req: Request, ctx: { params: P }) => P
       return await runWithStore(async () => {
         await hydrate();
         const res = await fn(req, ctx);
-        try {
-          await flush();
-        } catch (e) {
-          // reads only write bookkeeping (view audit, reminders); the answer is still good
-          if (req.method !== "GET") throw e;
-          console.error("[nyayasetu] could not save after a read", (e as Error).message);
-        }
+        // reads only write bookkeeping (view audit, reminders), so they answer now and save in the background
+        if (req.method === "GET") waitUntil(flush(true).catch((e) => console.error("[nyayasetu] will retry a save after a read", (e as Error).message)));
+        else await flush();
         return res;
       });
     } catch (e) {

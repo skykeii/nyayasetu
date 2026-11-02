@@ -2,6 +2,7 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { AsyncLocalStorage } from "async_hooks";
+import { gunzipSync, gzipSync } from "zlib";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { AuditEntry, Db } from "./types";
 import { SCHEMA_VERSION, seedDb } from "./seed";
@@ -12,7 +13,8 @@ const DB_FILE = path.join(DATA_DIR, "db.json");
 export const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 const CACHE_MS = 3000;
 const DB_TIMEOUT = 25000;
-const WRITE_ATTEMPTS = 5;
+const WRITE_BUDGET_MS = 12000;
+const BACKGROUND_BUDGET_MS = 15000;
 const TABLE = "app_state";
 
 type Mutation = (db: Db) => unknown;
@@ -24,7 +26,8 @@ export function supabaseClient(): SupabaseClient | null {
   if (g.__nyayasetuSb !== undefined) return g.__nyayasetuSb;
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  g.__nyayasetuSb = url && key ? createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(DB_TIMEOUT) }) } }) : null;
+  g.__nyayasetuSb = url && key ? createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, // no-store: Next.js otherwise serves database reads from its fetch cache, even across deployments
+    global: { fetch: (input, init) => fetch(input, { ...init, cache: "no-store", signal: AbortSignal.timeout(DB_TIMEOUT) }) } }) : null;
   return g.__nyayasetuSb;
 }
 
@@ -63,32 +66,42 @@ function writeFile(db: Db) {
   }
 }
 
-const serialize = (db: Db) => ({ __schema: SCHEMA_VERSION, ...db });
+const serialize = (db: Db) => ({ __schema: SCHEMA_VERSION, __gz: gzipSync(JSON.stringify(db)).toString("base64") });
+const deserialize = (data: { __gz: string }) => JSON.parse(gunzipSync(Buffer.from(data.__gz, "base64")).toString("utf8")) as Db;
 
 /** Reads the row, creating it from the deterministic seed if the table is empty or the schema changed. */
-async function loadRow(sb: SupabaseClient): Promise<{ db: Db; rowVersion: number }> {
+async function loadRow(sb: SupabaseClient, attempt = 0): Promise<{ db: Db; rowVersion: number }> {
+  if (attempt > 4) throw new Error("Could not load or create the app_state row");
   const { data, error } = await sb.from(TABLE).select("data, version").eq("id", 1).maybeSingle();
   if (error) throw error;
-  if (data && (data.data as { __schema?: number })?.__schema === SCHEMA_VERSION) {
-    const { __schema, ...db } = data.data as Db & { __schema: number };
-    return { db: db as Db, rowVersion: Number(data.version) };
+  if (data && (data.data as { __schema?: number; __gz?: string })?.__schema === SCHEMA_VERSION && (data.data as { __gz?: string }).__gz) {
+    return { db: deserialize(data.data as { __gz: string }), rowVersion: Number(data.version) };
   }
   const db = seedDb();
   if (data) {
     const version = Number(data.version) + 1;
     const res = await sb.from(TABLE).update({ data: serialize(db), version, updated_at: new Date().toISOString() }).eq("id", 1).eq("version", data.version).select("version");
     if (res.error) throw res.error;
-    return res.data.length ? { db, rowVersion: version } : loadRow(sb);
+    return res.data.length ? { db, rowVersion: version } : loadRow(sb, attempt + 1);
   }
   const res = await sb.from(TABLE).upsert({ id: 1, data: serialize(db), version: 0 }, { onConflict: "id", ignoreDuplicates: true }).select("version");
   if (res.error) throw res.error;
-  return res.data.length ? { db, rowVersion: 0 } : loadRow(sb);
+  return res.data.length ? { db, rowVersion: 0 } : loadRow(sb, attempt + 1);
 }
 
 let hydrating: Promise<void> | null = null;
-let writes: Promise<unknown> = Promise.resolve();
+let writing: Promise<void> | null = null;
+// changes made in this instance's memory that the database does not have yet, oldest first
+let unsaved: Mutation[] = [];
 
-/** Runs one request with its own list of unsaved mutations. */
+/** Swaps in a copy read from the database, keeping changes not saved yet. */
+function adopt(row: { db: Db; rowVersion: number }) {
+  for (const fn of unsaved) fn(row.db);
+  row.db.version += unsaved.length;
+  g.__nyayasetu = { db: row.db, schema: SCHEMA_VERSION, rowVersion: row.rowVersion, checkedAt: Date.now() };
+}
+
+/** Runs one request, tracking the changes it makes. */
 export const runWithStore = <T>(fn: () => Promise<T>) => requestScope.run({ pending: [] }, fn);
 
 /** Makes state available before a route runs. With Supabase, re-checks the version at most every ~3 s. */
@@ -105,7 +118,8 @@ async function hydrateOnce() {
   const sb = supabaseClient()!;
   const h = g.__nyayasetu;
   const fresh = h?.db && h.schema === SCHEMA_VERSION && h.rowVersion >= 0;
-  if (fresh && Date.now() - h!.checkedAt < CACHE_MS) return;
+  // while a write is running this copy is ahead of the database, and the writer handles conflicts
+  if (fresh && (writing || Date.now() - h!.checkedAt < CACHE_MS)) return;
   if (fresh) {
     const { data, error } = await sb.from(TABLE).select("version").eq("id", 1).maybeSingle();
     if (error) throw error;
@@ -114,56 +128,65 @@ async function hydrateOnce() {
       return;
     }
   }
-  const row = await loadRow(sb);
-  g.__nyayasetu = { db: row.db, schema: SCHEMA_VERSION, rowVersion: row.rowVersion, checkedAt: Date.now() };
+  adopt(await loadRow(sb));
 }
 
-/** Saves this request's mutations with an optimistic version check. On conflict it reloads, re-applies and retries. */
-export async function flush() {
+/** Saves everything unsaved in one write, with an optimistic version check. On conflict it reloads, re-applies and retries. */
+async function persist(sb: SupabaseClient, budget: number) {
+  const started = Date.now();
+  for (let attempt = 0; unsaved.length; attempt++) {
+    const h = g.__nyayasetu!;
+    const included = unsaved.length;
+    const next = h.rowVersion + 1;
+    const res = await sb.from(TABLE).update({ data: serialize(h.db!), version: next, updated_at: new Date().toISOString() }).eq("id", 1).eq("version", h.rowVersion).select("version");
+    if (res.error) throw res.error;
+    if (res.data.length) {
+      unsaved.splice(0, included);
+      h.rowVersion = next;
+      h.checkedAt = Date.now();
+      continue;
+    }
+    if (Date.now() - started > budget) {
+      const { ApiError } = await import("./api");
+      throw new ApiError(409, "Someone else changed this at the same moment. Please try again.");
+    }
+    await new Promise((r) => setTimeout(r, 60 + Math.random() * 200 * Math.min(attempt + 1, 4)));
+    adopt(await loadRow(sb));
+  }
+}
+
+/**
+ * Waits until this request's changes are saved. Requests in one instance share a single write.
+ * keep = true means a failed save is retried with a later write (bookkeeping from reads);
+ * otherwise the caller reports the failure, so the change is dropped.
+ */
+export async function flush(keep = false) {
   const sb = supabaseClient();
   const scope = requestScope.getStore();
   if (!sb || !scope?.pending.length) return;
-  // one write at a time per instance, so requests here do not conflict with each other
-  const run = writes.then(() => writeRow(sb, scope));
-  writes = run.catch(() => undefined);
-  return run;
-}
-
-async function writeRow(sb: SupabaseClient, scope: { pending: Mutation[] }) {
-  if (!scope.pending.length) return;
+  const run = (budget: number) =>
+    (writing ??= persist(sb, budget).finally(() => {
+      writing = null;
+    }));
+  if (keep) {
+    // background bookkeeping gives way quickly and rides along with a later write
+    await run(BACKGROUND_BUDGET_MS);
+    return;
+  }
   try {
-    await attemptWrite(sb, scope);
+    // a background save may fail without saying anything about this request's change
+    if (writing) await writing.catch(() => undefined);
+    await run(WRITE_BUDGET_MS);
+    if (unsaved.some((fn) => scope.pending.includes(fn))) await run(WRITE_BUDGET_MS);
   } catch (e) {
-    // this instance's copy now differs from the database, so the next request must reload
+    unsaved = unsaved.filter((fn) => !scope.pending.includes(fn));
+    // memory still holds the dropped change, so the next request reloads
     if (g.__nyayasetu) {
       g.__nyayasetu.checkedAt = 0;
       g.__nyayasetu.rowVersion = -1;
     }
     throw e;
   }
-}
-
-async function attemptWrite(sb: SupabaseClient, scope: { pending: Mutation[] }) {
-  for (let attempt = 0; attempt < WRITE_ATTEMPTS; attempt++) {
-    const h = g.__nyayasetu!;
-    const next = h.rowVersion + 1;
-    const res = await sb.from(TABLE).update({ data: serialize(h.db!), version: next, updated_at: new Date().toISOString() }).eq("id", 1).eq("version", h.rowVersion).select("version");
-    if (res.error) throw res.error;
-    if (res.data.length) {
-      h.rowVersion = next;
-      h.checkedAt = Date.now();
-      scope.pending = [];
-      return;
-    }
-    if (attempt === WRITE_ATTEMPTS - 1) break;
-    await new Promise((r) => setTimeout(r, 80 + Math.random() * 220 * (attempt + 1)));
-    const row = await loadRow(sb);
-    for (const fn of scope.pending) fn(row.db);
-    row.db.version += scope.pending.length;
-    g.__nyayasetu = { db: row.db, schema: SCHEMA_VERSION, rowVersion: row.rowVersion, checkedAt: Date.now() };
-  }
-  const { ApiError } = await import("./api");
-  throw new ApiError(409, "Someone else changed this at the same moment. Please try again.");
 }
 
 export function getDb(): Db {
@@ -175,8 +198,10 @@ export function getDb(): Db {
 }
 
 function save(fn: Mutation, db: Db) {
-  if (supabaseClient()) requestScope.getStore()?.pending.push(fn);
-  else writeFile(db);
+  if (supabaseClient()) {
+    unsaved.push(fn);
+    requestScope.getStore()?.pending.push(fn);
+  } else writeFile(db);
 }
 
 /** Apply a mutation, bump version, persist. */

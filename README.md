@@ -55,7 +55,7 @@ alter table app_state enable row level security;
 3. In Storage, create a **private** bucket named `uploads`.
 4. On Vercel, add `SESSION_SECRET`, `DATA_ENCRYPTION_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GROQ_API_KEY` and `GROQ_MODEL`, then redeploy. `vercel.json` pins the functions to `bom1`.
 
-The first request seeds an empty table. Each write sends the whole state (about 1.3 MB) with a version check; if another instance wrote first, the change is reloaded, re-applied and retried once. From a machine far from the database a write can take several seconds, so leave the Supabase variables out of `.env.local` for fast local work. Without them on Vercel the app runs from memory and shows a "demo data resets on restart" banner.
+The first request seeds an empty table. The state is stored gzip-compressed inside the `data` column. Each write sends the whole state with a version check; if another instance wrote first, unsaved changes are re-applied to the newer copy and retried. Reads answer straight away and save their bookkeeping (view audit, reminders) in the background. From a machine far from the database a write can take several seconds, so leave the Supabase variables out of `.env.local` for fast local work. Without them on Vercel the app runs from memory and shows a "demo data resets on restart" banner.
 
 ### Design notes
 
