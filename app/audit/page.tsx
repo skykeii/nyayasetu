@@ -1,14 +1,40 @@
 "use client";
 import * as React from "react";
 import { Search } from "lucide-react";
-import { useApi } from "@/components/role-provider";
-import { Badge, Card, Input, Skeleton } from "@/components/ui";
+import { useApi, useRole } from "@/components/role-provider";
+import { Badge, Button, Card, Input, Skeleton } from "@/components/ui";
 import { ErrorNote } from "@/components/bits";
 import type { AuditEntry } from "@/lib/types";
 import { fmtDateTime } from "@/lib/util";
 
 const tone = (a: string) =>
   a.startsWith("OVERLAP") ? "violet" : a.includes("DISPOSE") ? "emerald" : a.includes("ESCALATE") || a.includes("TRANSFER") ? "saffron" : a.startsWith("VIEW") || a === "ROLE_SWITCH" ? "slate" : a.startsWith("SETTINGS") || a.startsWith("DEMO") ? "red" : "indigo";
+
+function VerifyIntegrity() {
+  const { api } = useRole();
+  const [out, setOut] = React.useState<{ ok: boolean; checked: number; brokenAt: string | null } | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      setOut(await api("/api/audit", { method: "POST" }));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button variant="secondary" size="sm" onClick={run} loading={busy}>
+        Verify integrity
+      </Button>
+      {out && (
+        <span role="status" className={out.ok ? "text-[13px] text-emerald-200" : "text-[13px] font-semibold text-red-300"}>
+          {out.ok ? `Hash chain intact: ${out.checked} entries checked.` : `Chain broken at ${out.brokenAt}. An entry was changed or removed.`}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function AuditPage() {
   const [q, setQ] = React.useState("");
@@ -23,7 +49,8 @@ export default function AuditPage() {
       <div>
         <h1 className="text-[26px] font-bold tracking-tight text-white">Audit trail</h1>
         <p className="text-[13.5px] text-slate-400">Every sign-in, case view, action, link and settings change, with the officer and role that made it. Append-only.</p>
-      </div>
+      <VerifyIntegrity />
+        </div>
       <Card className="p-4">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
