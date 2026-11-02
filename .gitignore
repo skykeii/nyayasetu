@@ -5,3 +5,5 @@ data/uploads
 .env*
 !.env.example
 *.tsbuildinfo
+
+.vercel
