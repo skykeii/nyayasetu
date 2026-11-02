@@ -20,6 +20,7 @@ export default function HeatmapPage() {
   const ranked = rows.filter((r) => r.total >= MIN_CASES).sort((a, b) => (def.higherIsBetter ? b[metric] - a[metric] : a[metric] - b[metric]));
   const few = rows.filter((r) => r.total < MIN_CASES).length;
   const sel = data?.states.find((s) => s.key === selected);
+  // select once the state is known to have data; a click on an empty shape does nothing
   return (
     <div className="mx-auto max-w-[1280px] space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -38,8 +39,8 @@ export default function HeatmapPage() {
                 <span className="font-semibold text-white">{sel.key}</span> · {sel.region} region · <span className="num">{sel.total}</span> complaints · <span className="num">{sel.open}</span> open · <span className="num">{sel.overdue}</span> overdue
               </span>
               <span className="flex gap-3">
-                <Link href={`/cases?region=${encodeURIComponent(sel.region)}`} className="font-medium text-saffron hover:underline">
-                  Cases in {sel.region}
+                <Link href={`/cases?state=${encodeURIComponent(sel.key)}`} className="font-medium text-saffron hover:underline">
+                  Cases in {sel.key}
                 </Link>
                 <Link href={`/institutions?region=${encodeURIComponent(sel.region)}`} className="font-medium text-saffron hover:underline">
                   Institutions
