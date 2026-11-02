@@ -86,12 +86,12 @@ export function CaseDrawer({ id, onClose }: { id: string | null; onClose: () => 
     <AnimatePresence>
       {id && (
         <>
-          <motion.div key="bg" className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[3px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+          <motion.div key="bg" className="fixed inset-0 z-50 !mt-0 bg-black/30 backdrop-blur-[3px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.aside
             key="panel"
             role="dialog"
             aria-label={`Case ${id}`}
-            className="glass-strong scroll-thin fixed bottom-0 right-0 top-0 z-50 w-full max-w-[780px] overflow-y-auto rounded-l-[24px] border-y-0 border-r-0 bg-[#FBF7EF]"
+            className="glass-strong scroll-thin fixed bottom-0 right-0 top-0 z-50 !mt-0 w-full max-w-[780px] overflow-y-auto rounded-l-[24px] border-y-0 border-r-0 bg-[#FBF7EF]"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}

@@ -47,7 +47,7 @@ async function handleGET(req: Request) {
   const openScoped = scoped.filter((c) => c.status !== "Disposed").sort((a, b) => slaInfo(db, a).daysToDue - slaInfo(db, b).daysToDue);
   const mine = openScoped.filter((c) => c.officerId === v.officerId).slice(0, 12).map(toRow);
   const dueSoon = openScoped.filter((c) => slaInfo(db, c).state !== "ok").slice(0, 10).map(toRow);
-  return json({ ...d, mine, dueSoon, overlapFeed, connections, scope, version: db.version, generatedAt: new Date().toISOString() });
+  return json({ ...d, mine, dueSoon, overlapFeed, connections, connectionsTotal: inScope.length, scope, version: db.version, generatedAt: new Date().toISOString() });
 }
 
 export const GET = withApi(handleGET);

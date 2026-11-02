@@ -80,7 +80,7 @@ function Tracker({ c }: { c: MyComplaint }) {
         return (
           <li key={s} className="flex items-center gap-1">
             <span className={cn("rounded-full border px-2 py-0.5", now ? "border-[var(--accent)] bg-[var(--accent)]/15 font-semibold text-white" : done ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-200" : "border-white/10 text-slate-500", skipped && "line-through opacity-50")}>{s}</span>
-            {i < steps.length - 1 && <span className="text-slate-600">›</span>}
+            {i < steps.length - 1 && <span className="text-slate-500">›</span>}
           </li>
         );
       })}

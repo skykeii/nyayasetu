@@ -101,13 +101,13 @@ function InstitutionsPage() {
                   <td className="px-2 py-2.5 text-slate-400">{i.type}</td>
                   <td className="num px-2 py-2.5 text-right">{i.total}</td>
                   <td className="num px-2 py-2.5 text-right text-amber-200">{i.open}</td>
-                  <td className={cn("num px-2 py-2.5 text-right", i.overdue ? "font-semibold text-red-300" : "text-slate-600")}>{i.overdue}</td>
+                  <td className={cn("num px-2 py-2.5 text-right", i.overdue ? "font-semibold text-red-300" : "text-slate-500")}>{i.overdue}</td>
                   <td className="px-2 py-2.5">
                     <div className="flex flex-wrap gap-1">
-                      {i.bureaus.length ? i.bureaus.map((b) => <BureauChip key={b} code={b} />) : <span className="text-slate-600">None</span>}
+                      {i.bureaus.length ? i.bureaus.map((b) => <BureauChip key={b} code={b} />) : <span className="text-slate-500">None</span>}
                     </div>
                   </td>
-                  <td className="px-2 py-2.5">{i.overlaps ? <Badge tone="violet">{i.overlaps} open</Badge> : <span className="text-slate-600">0</span>}</td>
+                  <td className="px-2 py-2.5">{i.overlaps ? <Badge tone="violet">{i.overlaps} open</Badge> : <span className="text-slate-500">0</span>}</td>
                   <td className="px-2 py-2.5" title={i.risk.band}>
                     <span className="flex items-center gap-2">
                       <span className={cn("num font-semibold", i.risk.confidence === "Low" ? "text-slate-500" : "text-white")}>{i.risk.score}</span>

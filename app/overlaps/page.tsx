@@ -79,6 +79,7 @@ function Overlaps() {
           <CardHeader title="Connection map" sub="Units on the left, institutions on the right. Every line is a complaint. Select an institution to jump to its overlap below." />
           <div className="px-6 pb-6">
             <ConnectionMap
+              total={items.filter((i) => i.kind === "cross-bureau").length}
               links={items
                 .filter((i) => i.kind === "cross-bureau")
                 .slice(0, 20)

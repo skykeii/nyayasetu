@@ -43,7 +43,7 @@ function useBox() {
  * complaint. An institution reached from two or more units is a cross-bureau overlap.
  * Hover or focus either side to trace its links; select an institution to open its overlap.
  */
-export function ConnectionMap({ links, rowH = 54, className }: { links: Connection[]; rowH?: number; className?: string }) {
+export function ConnectionMap({ links, total, rowH = 54, className }: { links: Connection[]; total?: number; rowH?: number; className?: string }) {
   const [ref, w] = useBox();
   const [focus, setFocus] = React.useState<{ kind: "unit" | "inst"; key: string } | null>(null);
 
@@ -164,6 +164,7 @@ export function ConnectionMap({ links, rowH = 54, className }: { links: Connecti
           </>
         )}
       </div>
+      {total !== undefined && total > links.length && <p className="mt-3 text-[13px] font-medium text-slate-300">Showing the newest {links.length} of {total}.</p>}
       <p className="mt-3 text-[13px] text-slate-400">
         Each line is a complaint, coloured by the unit handling it; a thicker line carries more than one. Every institution here has lines from two or more units, so it is being worked on in parallel. A purple outline means it still needs coordination. Point at a unit or an institution to trace its links.
       </p>

@@ -50,7 +50,7 @@ export default function SettingsPage() {
           {(Object.keys(s.slaDays) as (keyof Settings["slaDays"])[]).map((cat) => (
             <div key={cat}>
               <Label>
-                {cat} <span className="text-slate-600">(default {data.defaults.slaDays[cat]})</span>
+                {cat} <span className="text-slate-500">(default {data.defaults.slaDays[cat]})</span>
               </Label>
               <div className="flex items-center gap-2">
                 <Input type="number" min={1} max={365} value={s.slaDays[cat]} onChange={(e) => setS({ ...s, slaDays: { ...s.slaDays, [cat]: Number(e.target.value) } })} className="w-28" disabled={role !== "ca"} />

@@ -198,7 +198,7 @@ export default function IntakePage() {
               {p.cues.length > 0 && <div className="text-[13.5px] text-slate-400"><Advisory>AI urgency cues</Advisory> {p.cues.join(", ")}</div>}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label>Category <span className="text-slate-600">({p.categoryReason})</span></Label>
+                  <Label>Category <span className="text-slate-500">({p.categoryReason})</span></Label>
                   <Select
                     value={category}
                     onChange={(e) => {
@@ -213,7 +213,7 @@ export default function IntakePage() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Severity <span className="text-slate-600">({p.severityReason})</span></Label>
+                  <Label>Severity <span className="text-slate-500">({p.severityReason})</span></Label>
                   <Select value={severity} onChange={(e) => setSeverity(e.target.value as Severity)}>
                     {["Low", "Medium", "High", "Critical"].map((s) => (
                       <option key={s}>{s}</option>
@@ -222,7 +222,7 @@ export default function IntakePage() {
                 </div>
               </div>
               <div>
-                <Label>Institution <span className="text-slate-600">({p.institutionReason})</span></Label>
+                <Label>Institution <span className="text-slate-500">({p.institutionReason})</span></Label>
                 <Select
                   value={institutionId}
                   onChange={(e) => {

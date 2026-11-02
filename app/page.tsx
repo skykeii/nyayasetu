@@ -22,6 +22,7 @@ interface Dash {
   queue: { id: string; category: string; bureau: string; status: Status; institution?: string; nextAction: string; daysToDue: number; severity: Severity }[];
   overlapFeed: { id: string; status: string; confidence: number; bureaus: string[]; institutionId: string; institution?: string; cases: { id: string; bureau: string; subject: string; reference: string; reportedName: string }[]; topReason?: string; newestAt: string; pairs?: { a: string; b: string; confidence: number; reasons: string[] }[] }[];
   connections?: Connection[];
+  connectionsTotal?: number;
   scope: string;
   generatedAt: string;
 }
@@ -126,7 +127,7 @@ export default function CommandCenter() {
               </Link>
             }
           />
-          <div className="px-6 pb-6">{data ? <ConnectionMap links={data.connections ?? []} /> : <Skeleton className="h-96" />}</div>
+          <div className="px-6 pb-6">{data ? <ConnectionMap links={data.connections ?? []} total={data.connectionsTotal} /> : <Skeleton className="h-96" />}</div>
         </Card>
       </div>
 
@@ -215,7 +216,7 @@ export default function CommandCenter() {
                     <td className="num px-2 py-2 text-right">{r.Escalated}</td>
                     <td className="num px-2 py-2 text-right text-emerald-300/80">{r.Disposed}</td>
                     <td className={cn("num px-2 py-2 text-right", Number(r.overdue) > 0 && "font-semibold text-red-300")}>{r.overdue}</td>
-                    <td className="px-5 py-2 text-right">{Number(r.overlaps) > 0 ? <Badge tone="violet">{r.overlaps}</Badge> : <span className="text-slate-600">0</span>}</td>
+                    <td className="px-5 py-2 text-right">{Number(r.overlaps) > 0 ? <Badge tone="violet">{r.overlaps}</Badge> : <span className="text-slate-500">0</span>}</td>
                   </tr>
                 ))}
               </tbody>

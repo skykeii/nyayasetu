@@ -8,6 +8,8 @@ export interface Series {
   color: string;
 }
 
+const legendText = (value: string) => <span style={{ color: "#4F4338" }}>{value}</span>;
+
 const axis = { stroke: "#B8A994", fontSize: 13, tickLine: false, axisLine: false } as const;
 
 function Tip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
@@ -45,7 +47,7 @@ export function BarsChart({ data, x, series, stacked, height = 260, horizontal }
           </>
         )}
         <Tooltip content={<Tip />} cursor={{ fill: "rgba(166,85,11,0.06)" }} />
-        {series.length > 1 && <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 13, color: "#4F4338", paddingTop: 4 }} />}
+        {series.length > 1 && <Legend formatter={legendText} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 13, color: "#4F4338", paddingTop: 4 }} />}
         {series.map((s, i) => (
           <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} stackId={stacked ? "a" : undefined} radius={stacked ? (i === series.length - 1 ? (horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]) : 0) : horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]} maxBarSize={38} isAnimationActive={false} />
         ))}
@@ -62,7 +64,7 @@ export function LinesChart({ data, x, series, height = 260 }: { data: Record<str
         <XAxis dataKey={x} {...axis} tick={{ fill: "#74655A", fontSize: 12.5 }} />
         <YAxis {...axis} allowDecimals={false} tick={{ fill: "#74655A", fontSize: 12.5 }} />
         <Tooltip content={<Tip />} cursor={{ stroke: "rgba(166,85,11,0.3)" }} />
-        <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 13, color: "#4F4338", paddingTop: 4 }} />
+        <Legend formatter={legendText} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 13, color: "#4F4338", paddingTop: 4 }} />
         {series.map((s) => (
           <Line key={s.key} type="monotone" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={2.4} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
         ))}

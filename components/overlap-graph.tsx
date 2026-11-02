@@ -12,6 +12,7 @@ interface Node {
 }
 const W = 640;
 const H = 300;
+const EDGE_LENGTH = 180;
 
 /** Small deterministic force layout: nodes repel, edges pull, so the same data always draws the same way. */
 function layout(nodes: Node[], edges: { a: string; b: string }[]) {
@@ -39,10 +40,11 @@ function layout(nodes: Node[], edges: { a: string; b: string }[]) {
       const b = byId.get(e.b)!;
       const dx = b.x - a.x;
       const dy = b.y - a.y;
-      force.get(a.id)!.x += dx * 0.03;
-      force.get(a.id)!.y += dy * 0.03;
-      force.get(b.id)!.x -= dx * 0.03;
-      force.get(b.id)!.y -= dy * 0.03;
+      const pull = ((Math.hypot(dx, dy) || 1) - EDGE_LENGTH) / (Math.hypot(dx, dy) || 1) * 0.08;
+      force.get(a.id)!.x += dx * pull;
+      force.get(a.id)!.y += dy * pull;
+      force.get(b.id)!.x -= dx * pull;
+      force.get(b.id)!.y -= dy * pull;
     }
     for (const n of nodes) {
       const f = force.get(n.id)!;

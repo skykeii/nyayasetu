@@ -17,7 +17,7 @@ const IMPLEMENTED = [
   "Privacy notice and consent record for students, with a Request deletion action that goes to the AICTE desk",
   "Text sent to Groq is pre-redacted: phones, emails, roll numbers and APAAR IDs are removed first, and the API key stays on the server",
 ];
-const MOCKED = ["OTP: always 123456, no SMS is sent", "Competent Authority 2FA: always 123456", "Bot check: a mock slider, with a marked swap point for Turnstile or hCaptcha", "SMS reminders: logged only, not sent", "Evidence check without a Groq key: scores the note and file types, without inspecting images"];
+const MOCKED = ["OTP: always 123456, no SMS is sent", "Competent Authority 2FA: always 123456", "Bot check: a mock slider, with a marked swap point for Turnstile or hCaptcha", "SMS reminders: logged only, not sent", "Evidence check without a vision model: scores the note and file types, without inspecting images"];
 const PLANNED = ["Real SMS gateway", "Single sign-on (SSO)", "Full relational PostgreSQL schema (the prototype stores state as JSON in Supabase Postgres)", "Web application firewall (WAF)", "Formal retention schedule and automated deletion workflow", "Independent security review"];
 
 function Block({ title, items }: { title: string; items: string[] }) {

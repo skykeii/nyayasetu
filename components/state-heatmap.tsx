@@ -148,7 +148,7 @@ export function StateHeatmap({ rows, metric, selected, onSelect, className }: { 
           {def.hint}. {def.higherIsBetter ? "Deeper is better." : "Deeper is worse."} Grey shapes have no institutions in this demo.
         </span>
       </div>
-      <p className="mt-1 text-[12px] text-slate-600">Boundaries: DataMeet India community, CC BY 4.0. Indicative only, not an official Survey of India map; the J&amp;K and Ladakh internal line is approximate.</p>
+      <p className="mt-1 text-[12px] text-slate-500">Boundaries: DataMeet India community, CC BY 4.0. Indicative only, not an official Survey of India map; the J&amp;K and Ladakh internal line is approximate.</p>
       {hover && (
         <div className="glass-strong pointer-events-none absolute z-20 w-56 -translate-x-1/2 -translate-y-full rounded-lg px-3 py-2 text-[13.5px] shadow-xl" style={{ left: hover.x, top: hover.y - 8 }}>
           <div className="font-semibold text-white">{hover.shape.name}</div>
