@@ -89,15 +89,20 @@ export function urgencyFor(db: Db, s: StudentComplaint) {
 
 const isOpen = (x: StudentComplaint) => x.status === "With College" || x.status === "Resolved - Pending Verification" || x.status === "Escalated to AICTE";
 
-/** Best text similarity against this student's own open complaints. */
-export function nearestOwnOpen(db: Db, studentId: string, text: string) {
+/** Best text similarity against this student's own open complaints. The student's own words are compared too, because AI rewords a translation differently each time. */
+export function nearestOwnOpen(db: Db, studentId: string, translation: string, original: string) {
   const own = db.studentComplaints.filter((x) => x.studentId === studentId && isOpen(x));
   if (!own.length) return null;
-  const vecs = buildTfidf([text, ...own.map((x) => x.translatedText)].map((t) => tokenizeText(t)));
+  const score = (text: string, others: string[]) => {
+    const vecs = buildTfidf([text, ...others].map((t) => tokenizeText(t)));
+    return others.map((_, i) => cosine(vecs[0], vecs[i + 1]).score);
+  };
+  const byTranslation = score(translation, own.map((x) => x.translatedText));
+  const byOriginal = score(original, own.map((x) => x.originalText));
   let best: { score: number; complaint: StudentComplaint } | null = null;
   own.forEach((x, i) => {
-    const score = cosine(vecs[0], vecs[i + 1]).score;
-    if (!best || score > best.score) best = { score, complaint: x };
+    const s = Math.max(byTranslation[i], byOriginal[i]);
+    if (!best || s > best.score) best = { score: s, complaint: x };
   });
   return best as { score: number; complaint: StudentComplaint } | null;
 }

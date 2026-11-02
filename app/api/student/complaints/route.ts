@@ -38,7 +38,7 @@ export const POST = withApi(async (req) => {
   if (own.filter((c) => Date.now() - new Date(c.createdAt).getTime() < DAY).length >= LIMITS.perDay) throw new ApiError(429, `At most ${LIMITS.perDay} complaints can be filed in a day.`);
 
   const processed = await processText(text, code, f.sampleId);
-  const near = nearestOwnOpen(db, s.id, processed.translation);
+  const near = nearestOwnOpen(db, s.id, processed.translation, text);
   if (near && near.score >= 0.55 && !f.overrideReason) {
     return json({ error: "You already have a similar open complaint.", similar: { id: near.complaint.id, subject: near.complaint.subject, status: near.complaint.status } }, { status: 409 });
   }
