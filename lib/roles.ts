@@ -8,8 +8,16 @@ export interface RoleDef {
   regional: boolean;
   defaultOfficer: string;
   can: { act: boolean; link: boolean; settings: boolean; audit: boolean; simulate: boolean };
+  // role experience: what this role sees once signed in
   nav: string[];
+  landing: string;
+  accent: string;
+  badge: string;
+  api: string[] | "all"; // API prefixes the role may call, enforced in middleware.ts
 }
+
+const OFFICER_NAV = ["/desk", "/cases", "/intake", "/institutions", "/overlaps", "/heatmap", "/grievances", "/alerts", "/reports"];
+const OFFICER_API = ["/api/alerts", "/api/cases", "/api/dashboard", "/api/files", "/api/grievances", "/api/heatmap", "/api/institutions", "/api/intake", "/api/overlaps", "/api/reports", "/api/simulate", "/api/ai"];
 
 export const ROLES: Record<RoleKey, RoleDef> = {
   ca: {
@@ -21,6 +29,10 @@ export const ROLES: Record<RoleKey, RoleDef> = {
     defaultOfficer: "CA-1",
     can: { act: true, link: true, settings: true, audit: true, simulate: true },
     nav: ["/", "/cases", "/intake", "/institutions", "/overlaps", "/heatmap", "/grievances", "/alerts", "/reports", "/audit", "/settings"],
+    landing: "/",
+    accent: "#FF9933",
+    badge: "Competent Authority",
+    api: "all",
   },
   rb: {
     key: "rb",
@@ -30,7 +42,11 @@ export const ROLES: Record<RoleKey, RoleDef> = {
     regional: false,
     defaultOfficer: "RB-2",
     can: { act: true, link: true, settings: false, audit: false, simulate: true },
-    nav: ["/", "/cases", "/intake", "/institutions", "/overlaps", "/heatmap", "/grievances", "/alerts", "/reports"],
+    nav: OFFICER_NAV,
+    landing: "/desk",
+    accent: "#818CF8",
+    badge: "RB Officer",
+    api: OFFICER_API,
   },
   pgrc: {
     key: "pgrc",
@@ -40,7 +56,11 @@ export const ROLES: Record<RoleKey, RoleDef> = {
     regional: false,
     defaultOfficer: "PGRC-2",
     can: { act: true, link: true, settings: false, audit: false, simulate: true },
-    nav: ["/", "/cases", "/intake", "/institutions", "/overlaps", "/heatmap", "/grievances", "/alerts", "/reports"],
+    nav: OFFICER_NAV,
+    landing: "/desk",
+    accent: "#34D399",
+    badge: "PGRC Officer",
+    api: OFFICER_API,
   },
   other: {
     key: "other",
@@ -50,7 +70,11 @@ export const ROLES: Record<RoleKey, RoleDef> = {
     regional: false,
     defaultOfficer: "AB-2",
     can: { act: true, link: true, settings: false, audit: false, simulate: true },
-    nav: ["/", "/cases", "/intake", "/institutions", "/overlaps", "/heatmap", "/grievances", "/alerts", "/reports"],
+    nav: OFFICER_NAV,
+    landing: "/desk",
+    accent: "#38BDF8",
+    badge: "Bureau/Cell Officer",
+    api: OFFICER_API,
   },
   ro: {
     key: "ro",
@@ -60,7 +84,11 @@ export const ROLES: Record<RoleKey, RoleDef> = {
     regional: true,
     defaultOfficer: "RO-S",
     can: { act: false, link: false, settings: false, audit: false, simulate: false },
-    nav: ["/", "/cases", "/institutions", "/overlaps", "/heatmap", "/grievances", "/alerts", "/reports"],
+    nav: ["/", "/heatmap", "/cases", "/institutions", "/overlaps", "/grievances", "/alerts", "/reports"],
+    landing: "/",
+    accent: "#A78BFA",
+    badge: "Regional Officer",
+    api: OFFICER_API.filter((p) => p !== "/api/intake" && p !== "/api/simulate"),
   },
   college: {
     key: "college",
@@ -70,18 +98,49 @@ export const ROLES: Record<RoleKey, RoleDef> = {
     regional: false,
     defaultOfficer: "COL",
     can: { act: false, link: false, settings: false, audit: false, simulate: false },
-    nav: ["/college", "/alerts"],
+    nav: ["/college"],
+    landing: "/college",
+    accent: "#FBBF24",
+    badge: "College Nodal Officer",
+    api: ["/api/college", "/api/alerts", "/api/files"],
+  },
+  student: {
+    key: "student",
+    label: "Student",
+    short: "Student",
+    bureaus: [],
+    regional: false,
+    defaultOfficer: "STU",
+    can: { act: false, link: false, settings: false, audit: false, simulate: false },
+    nav: ["/student"],
+    landing: "/student",
+    accent: "#F472B6",
+    badge: "Student",
+    api: ["/api/student", "/api/ai/transcribe"],
   },
 };
 
 export const ROLE_KEYS = Object.keys(ROLES) as RoleKey[];
 
-/** The only officer APIs a college nodal officer may call. */
-export const COLLEGE_API_PREFIXES = ["/api/college", "/api/meta", "/api/alerts", "/api/files", "/api/audit"];
+// any signed-in role may call these
+const COMMON_API = ["/api/auth", "/api/ai/status", "/api/meta"];
+
+export function canCallApi(role: RoleKey, pathname: string) {
+  const allowed = ROLES[role].api;
+  const match = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
+  return allowed === "all" || allowed.some(match) || COMMON_API.some(match);
+}
+
+export function canOpenPage(role: RoleKey, pathname: string) {
+  const base = `/${pathname.split("/")[1] ?? ""}`;
+  return ROLES[role].nav.includes(base);
+}
 
 export interface Viewer {
   role: RoleKey;
   region: Region;
   officerId: string;
-  institutionId?: string; // college role only
+  accountId: string;
+  institutionId?: string; // college role
+  studentId?: string; // student role
 }

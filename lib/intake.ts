@@ -17,7 +17,8 @@ export const languageName = (code: string) => LANGUAGES.find((l) => l.code === c
 export const DEMO_OTP = "123456";
 export const DEMO_COLLEGE_INDEX = 20; // Krishna Tejaswi Institute of Technology
 export const PULSE_TERM = "2026-T2";
-export const LIMITS = { otpPer10Min: 3, otpFails: 5, openComplaints: 5, perDay: 5 };
+export const LIMITS = { otpPer10Min: 3, openComplaints: 5, perDay: 5 };
+export const CONSENT_VERSION = "2026-11-v1";
 
 export const DEMO_STUDENTS = [
   { apaarId: "APAAR-2046-1001", mobile: "9000000001", name: "Sravani Yerramilli", rollNo: "KTIT22CS041", collegeIndex: DEMO_COLLEGE_INDEX },
@@ -111,15 +112,20 @@ export function translateOffline(text: string, code: string, sampleId?: string):
 }
 
 /** Removes contact details and self-identification before a college sees the text. */
-export function maskPii(text: string) {
-  return text
+export function maskPii(text: string, names: string[] = []) {
+  const known = names.reduce((t, n) => t.split(n).join("[name hidden]"), text);
+  return known
     .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[email hidden]")
     .replace(/(\+?91[\s-]?)?\b[6-9]\d{9}\b/g, "[phone hidden]")
     .replace(/\b(roll\s*(no|number)?\.?\s*[:#-]?\s*)[\w/-]+/gi, "[roll number hidden]")
     .replace(/\bAPAAR[-\s]?[\w-]+/gi, "[ID hidden]")
+    .replace(/\b[A-Z]{2,6}\d{2}[A-Z]{0,4}\d{2,4}\b/g, "[roll number hidden]")
     .replace(/\b([Mm]y name is|[Tt]his is|I am called)\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?/g, "[name hidden]")
     .replace(/(मेरा नाम|माझे नाव|నా పేరు|என் பெயர்|আমার নাম)\s+\S+(\s+\S+)?/g, "[name hidden]");
 }
+
+/** Applied to all text before it leaves for an AI provider. */
+export const redactForAi = (text: string) => maskPii(text);
 
 export const pseudonymFor = (studentId: string) => `Student #${hashStr(`nyayasetu:${studentId}`).toUpperCase().padStart(4, "0").slice(-4)}`;
 
@@ -162,7 +168,7 @@ export function mockEvidence(o: { category: Category; note: string; docs: DocRef
   const parts = [
     terms.length ? `The note mentions ${terms.slice(0, 3).join(", ")}, which fits this ${o.category} complaint.` : `The note does not mention terms expected for a ${o.category} complaint.`,
     image ? "A photo was attached." : "No photo was attached, only a document.",
-    "Files were not visually inspected (no API key configured), so an official or the student must judge them.",
+    "Files were not visually inspected, so an official or the student must judge them.",
   ];
   return { score, verdict: score >= 70 ? "Likely matches" : score >= 50 ? "Partial match" : "Weak match", explanation: parts.join(" "), source: "mock", at: o.at };
 }

@@ -18,9 +18,9 @@ interface Desk {
 
 const statusTone = (s: StudentStatus) => ({ "With College": "amber", "Resolved - Pending Verification": "sky", "Closed - Verified": "emerald", "Closed - Unverified": "slate", "Escalated to AICTE": "saffron", "Closed by AICTE": "emerald" } as const)[s];
 
-function DocLink({ d, q }: { d: DocRef; q: string }) {
+function DocLink({ d }: { d: DocRef }) {
   return d.file ? (
-    <a href={`/api/files/${d.file}?${q}`} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[12px] text-slate-200 hover:border-saffron/50">
+    <a href={`/api/files/${d.file}`} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[12px] text-slate-200 hover:border-saffron/50">
       <Paperclip className="h-3 w-3" /> {d.name}
     </a>
   ) : (
@@ -30,7 +30,7 @@ function DocLink({ d, q }: { d: DocRef; q: string }) {
   );
 }
 
-function Detail({ c, onDone, q }: { c: CollegeComplaint; onDone: () => void; q: string }) {
+function Detail({ c, onDone }: { c: CollegeComplaint; onDone: () => void }) {
   const { api, toast, bump } = useRole();
   const [note, setNote] = React.useState("");
   const [files, setFiles] = React.useState<File[]>([]);
@@ -55,7 +55,13 @@ function Detail({ c, onDone, q }: { c: CollegeComplaint; onDone: () => void; q: 
   };
   return (
     <div className="space-y-4 border-t border-white/[0.07] px-4 py-4">
+      {c.directions && c.status === "With College" && (
+        <div className="rounded-lg border border-orange-300/30 bg-orange-400/10 px-3 py-2 text-[13px] text-orange-100">
+          <b>AICTE directions, round {c.round}:</b> {c.directions}
+        </div>
+      )}
       <p className="text-[14px] leading-relaxed text-slate-200">{c.text}</p>
+      {c.maskLevel === "basic" && <div className="text-[11.5px] text-slate-500">Masking: basic (regex only; AI name detection did not run)</div>}
       {c.originalText && (
         <div className="rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2">
           <div className="mb-1 flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
@@ -67,7 +73,7 @@ function Detail({ c, onDone, q }: { c: CollegeComplaint; onDone: () => void; q: 
       {c.photo && (
         <div>
           <div className="mb-1 text-[12px] text-slate-500">Photo from the student</div>
-          <DocLink d={c.photo} q={q} />
+          <DocLink d={c.photo} />
         </div>
       )}
       {c.proof && (
@@ -76,7 +82,7 @@ function Detail({ c, onDone, q }: { c: CollegeComplaint; onDone: () => void; q: 
           <p className="mt-1 text-[13px] text-slate-300">{c.proof.note}</p>
           <div className="mt-1.5 flex flex-wrap gap-2">
             {c.proof.docs.map((d) => (
-              <DocLink key={d.name} d={d} q={q} />
+              <DocLink key={d.name} d={d} />
             ))}
           </div>
           {c.evidence && (
@@ -87,13 +93,13 @@ function Detail({ c, onDone, q }: { c: CollegeComplaint; onDone: () => void; q: 
           {c.verifyBy && c.status === "Resolved - Pending Verification" && <div className="mt-1.5 text-[12.5px] text-sky-200">Waiting for the student. No answer by {fmtDate(c.verifyBy)} means Closed - Unverified, which counts less than a verified closure.</div>}
         </div>
       )}
-      {c.status === "Escalated to AICTE" && <div className="rounded-lg border border-orange-300/30 bg-orange-400/10 px-3 py-2 text-[13px] text-orange-100">{c.reopened ? "The student marked this Not done." : "Overdue at the college."} It is now with AICTE and read-only here.</div>}
+      {c.status === "Escalated to AICTE" && <div className="rounded-lg border border-orange-300/30 bg-orange-400/10 px-3 py-2 text-[13px] text-orange-100">{c.reopened ? "The student marked this Not done." : "Overdue at the college."} It is now with AICTE and read-only here. AICTE may return it with directions.</div>}
       {c.status === "With College" && (
         <div className="rounded-lg border border-white/[0.08] p-3">
           <Label>Work done (mandatory)</Label>
           <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="What was done, by whom and when" />
           <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-            <input type="file" multiple accept="image/png,image/jpeg,image/webp,application/pdf" aria-label="Proof of work" onChange={(e) => setFiles([...(e.target.files ?? [])])} className="text-[13px] text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-slate-100" />
+            <input type="file" multiple accept="image/png,image/jpeg,application/pdf" aria-label="Proof of work" onChange={(e) => setFiles([...(e.target.files ?? [])])} className="text-[13px] text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-slate-100" />
             <Button variant="primary" onClick={submit} loading={busy} disabled={note.trim().length < 10 || !files.length}>
               <Upload className="h-4 w-4" /> Mark resolved, pending verification
             </Button>
@@ -123,12 +129,10 @@ export default function CollegePageWrap() {
 }
 
 function CollegePage() {
-  const { headers } = useRole();
   const params = useSearchParams();
   const { data, error, loading, reload } = useApi<Desk>("/api/college", { interval: 5000 });
   const [open, setOpen] = React.useState<string | null>(params.get("open"));
   if (error) return <ErrorNote msg={error} />;
-  const q = new URLSearchParams({ _role: "college", ...(headers["x-institution"] ? { _institution: headers["x-institution"] } : {}) }).toString();
   const s = data?.stats;
   return (
     <div className="mx-auto max-w-[1280px] space-y-4">
@@ -163,7 +167,7 @@ function CollegePage() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] font-medium text-white">{c.subject}</span>
                     <span className="block truncate text-[12.5px] text-slate-400">
-                      <span className="num">{c.id}</span> · {c.pseudonym} · {c.category} · {c.urgency.reason}
+                      <span className="num">{c.id}</span> · {c.round > 1 ? `Round ${c.round} · ` : ""}{c.pseudonym} · {c.category} · {c.urgency.reason}
                     </span>
                   </span>
                   <span className="flex shrink-0 flex-col items-end gap-1">
@@ -171,7 +175,7 @@ function CollegePage() {
                     {c.escalationLevel === 1 && c.status === "With College" && <Badge tone="red">Escalated to Principal</Badge>}
                   </span>
                 </button>
-                {open === c.id && <Detail c={c} onDone={reload} q={q} />}
+                {open === c.id && <Detail c={c} onDone={reload} />}
               </div>
             ))}
             {data && data.items.length === 0 && <div className="px-5 py-10 text-center text-sm text-slate-400">No student complaints for this college. That is not evidence of good handling; see the risk index confidence level.</div>}

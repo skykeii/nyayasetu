@@ -1,14 +1,15 @@
+import { ApiError, withApi } from "@/lib/api";
 import { getDb } from "@/lib/store";
-import { forbidden, json, officerName, viewerFrom } from "@/lib/server";
+import { json, officerName, viewerFrom } from "@/lib/server";
 import { collegeView, sweepStudentLayer } from "@/lib/student";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+export const GET = withApi(async (req) => {
   sweepStudentLayer();
   const db = getDb();
   const v = viewerFrom(req, db);
-  if (v.role !== "college") return forbidden("This desk is for college nodal officers");
+  if (v.role !== "college") throw new ApiError(403, "This desk is for college nodal officers");
   const inst = db.institutions.find((i) => i.id === v.institutionId)!;
   const all = db.studentComplaints.filter((s) => s.institutionId === inst.id).map((s) => collegeView(db, s));
   const order = (s: string) => (s === "With College" ? 0 : s === "Resolved - Pending Verification" ? 1 : s === "Escalated to AICTE" ? 2 : 3);
@@ -31,4 +32,4 @@ export async function GET(req: Request) {
       escalated: count("Escalated to AICTE"),
     },
   });
-}
+});

@@ -1,15 +1,21 @@
+import { withApi } from "@/lib/api";
+import { z } from "zod";
+import { parseQuery } from "@/lib/api";
 import { getDb } from "@/lib/store";
 import { decorate, json, slaInfo, viewerFrom, visibleIds } from "@/lib/server";
 import { detectOverlaps } from "@/lib/overlap";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+const Text = z.string().max(120).optional();
+const Query = z.object({ q: Text, institution: Text, bureau: Text, category: Text, region: Text, state: Text, status: Text, from: Text, to: Text, overlap: Text, sort: Text, pageSize: z.string().regex(/^\d{0,4}$/).optional(), page: z.string().regex(/^\d{0,5}$/).optional() });
+
+async function handleGET(req: Request) {
   const db = getDb();
   const v = viewerFrom(req, db);
   const vis = visibleIds(db, v);
-  const u = new URL(req.url);
-  const p = (k: string) => u.searchParams.get(k) ?? "";
+  const query = parseQuery(req, Query);
+  const p = (k: keyof z.infer<typeof Query>) => query[k] ?? "";
   const q = p("q").trim().toLowerCase();
   const instById = new Map(db.institutions.map((i) => [i.id, i]));
   const { clusters } = detectOverlaps(db);
@@ -29,6 +35,7 @@ export async function GET(req: Request) {
   if (p("bureau")) list = list.filter((c) => c.bureau === p("bureau"));
   if (p("category")) list = list.filter((c) => c.category === p("category"));
   if (p("region")) list = list.filter((c) => instById.get(c.institutionId)?.region === p("region"));
+  if (p("state")) list = list.filter((c) => instById.get(c.institutionId)?.state === p("state"));
   const st = p("status");
   if (st === "open") list = list.filter((c) => c.status !== "Disposed");
   else if (st === "overdue") list = list.filter((c) => c.status !== "Disposed" && slaInfo(db, c).state === "breached");
@@ -57,3 +64,5 @@ export async function GET(req: Request) {
   const items = list.slice((page - 1) * pageSize, page * pageSize).map((c) => decorate(db, c, clusters, { v }));
   return json({ items, total, page, pageSize });
 }
+
+export const GET = withApi(handleGET);

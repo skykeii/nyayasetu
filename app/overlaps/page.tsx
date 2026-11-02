@@ -8,6 +8,7 @@ import { Advisory, Badge, Button, Card, Input, Select, Skeleton, Tabs, cn } from
 import { BureauChip, Confidence, ErrorNote, OverlapPulse, SlaBadge, StatusBadge } from "@/components/bits";
 import { OverlapBridge } from "@/components/overlap-bridge";
 import { CaseDrawer } from "@/components/case-drawer";
+import { AiExplain } from "@/components/ai-explain";
 import type { OverlapCluster } from "@/lib/overlap";
 import type { LinkGroup, Status } from "@/lib/types";
 import { fmtDate, fmtDateTime } from "@/lib/util";
@@ -180,6 +181,7 @@ function ClusterCard({ it, focused, onOpen, onDone }: { it: Item; focused: boole
               </>
             )}
           </div>
+                {best && <AiExplain a={best.a} b={best.b} score={best.confidence} reasons={best.reasons} />}
           <ul className="space-y-1">
             {[...new Set(it.pairs.flatMap((p) => p.reasons))].slice(0, 8).map((r) => (
               <li key={r} className="flex gap-2 text-[13px] text-slate-300">

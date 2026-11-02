@@ -1,5 +1,6 @@
+import { withApi } from "@/lib/api";
 import { getDb } from "@/lib/store";
-import { json, viewerFrom, visibleIds } from "@/lib/server";
+import { json, slaInfo, viewerFrom, visibleIds } from "@/lib/server";
 import { dashboard } from "@/lib/analytics";
 import { detectOverlaps } from "@/lib/overlap";
 import { BUREAUS } from "@/lib/types";
@@ -7,7 +8,7 @@ import { ROLES } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const db = getDb();
   const v = viewerFrom(req, db);
   const vis = visibleIds(db, v);
@@ -18,7 +19,7 @@ export async function GET(req: Request) {
   const { clusters } = detectOverlaps(db);
   const caseById = new Map(db.cases.map((c) => [c.id, c]));
   const overlapFeed = clusters
-    .filter((cl) => cl.caseIds.some((id) => vis.has(id)) && cl.kind === "cross-bureau")
+    .filter((cl) => cl.caseIds.some((id) => vis.has(id)) && cl.kind === "cross-bureau" && (def.bureaus === "all" || cl.bureaus.some((b) => (def.bureaus as string[]).includes(b))))
     .slice(0, 6)
     .map((cl) => ({
       id: cl.id,
@@ -36,5 +37,11 @@ export async function GET(req: Request) {
     }));
   const scope =
     v.role === "ca" ? "All bureaus/cells · national" : v.role === "ro" ? `${v.region} region · all bureaus` : (def.bureaus as string[]).map((b) => BUREAUS.find((x) => x.code === b)?.name).join(", ");
-  return json({ ...d, overlapFeed, scope, version: db.version, generatedAt: new Date().toISOString() });
+  const toRow = (c: (typeof db.cases)[number]) => ({ id: c.id, category: c.category, bureau: c.bureau, status: c.status, institution: db.institutions.find((i) => i.id === c.institutionId)?.name, nextAction: c.nextAction, daysToDue: slaInfo(db, c).daysToDue, severity: c.severity });
+  const openScoped = scoped.filter((c) => c.status !== "Disposed").sort((a, b) => slaInfo(db, a).daysToDue - slaInfo(db, b).daysToDue);
+  const mine = openScoped.filter((c) => c.officerId === v.officerId).slice(0, 12).map(toRow);
+  const dueSoon = openScoped.filter((c) => slaInfo(db, c).state !== "ok").slice(0, 10).map(toRow);
+  return json({ ...d, mine, dueSoon, overlapFeed, scope, version: db.version, generatedAt: new Date().toISOString() });
 }
+
+export const GET = withApi(handleGET);

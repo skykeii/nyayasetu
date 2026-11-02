@@ -1,10 +1,11 @@
+import { withApi } from "@/lib/api";
 import { audit, getDb, mutate } from "@/lib/store";
 import { forbidden, json, officerName, viewerFrom } from "@/lib/server";
 import { seedDb } from "@/lib/seed";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const db = getDb();
   const v = viewerFrom(req, db);
   if (v.role !== "ca") return forbidden("Only the Competent Authority can reset demo data");
@@ -16,3 +17,5 @@ export async function POST(req: Request) {
   });
   return json({ ok: true });
 }
+
+export const POST = withApi(handlePOST);

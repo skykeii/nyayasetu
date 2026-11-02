@@ -43,7 +43,18 @@ export function pairKey(a: string, b: string) {
 export function detectOverlaps(db: Db): { clusters: OverlapCluster[]; pairs: PairMatch[] } {
   const key = `${db.version}:${db.settings.overlapMinConfidence}:${db.cases.length}`;
   if (cache && cache.key === key) return { clusters: cache.clusters, pairs: cache.pairs };
+  const { clusters, pairs } = computeOverlaps(db);
+  cache = { key, clusters, pairs };
+  return { clusters, pairs };
+}
 
+/** Scores a complaint not saved yet against all open cases. Scores from 50% are returned for a human to review. */
+export function matchDraft(db: Db, draft: Case) {
+  const { pairs } = computeOverlaps({ ...db, cases: [...db.cases, draft], settings: { ...db.settings, overlapMinConfidence: 0.5 } });
+  return pairs.filter((p) => p.a === draft.id || p.b === draft.id);
+}
+
+function computeOverlaps(db: Db): { clusters: OverlapCluster[]; pairs: PairMatch[] } {
   const instById = new Map(db.institutions.map((i) => [i.id, i]));
   const open = db.cases.filter((c) => c.status !== "Disposed");
   const excludeFor = (c: Case) => {
@@ -154,7 +165,6 @@ export function detectOverlaps(db: Db): { clusters: OverlapCluster[]; pairs: Pai
     });
   }
   clusters.sort((a, b) => (a.status === "Open" ? 0 : 1) - (b.status === "Open" ? 0 : 1) || b.newestAt.localeCompare(a.newestAt));
-  cache = { key, clusters, pairs };
   return { clusters, pairs };
 }
 

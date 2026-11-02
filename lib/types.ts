@@ -106,7 +106,7 @@ export interface CaseAction {
   at: string; // ISO
   type: ActionType;
   by: string; // officer name
-  bureau: BureauCode | "RO" | "CA" | "SYSTEM";
+  bureau: BureauCode | "RO" | "CA" | "SYSTEM" | "COLLEGE";
   remarks: string;
   docs?: DocRef[];
   from?: string;
@@ -127,15 +127,18 @@ export interface Case {
   reportedPid?: string; // permanent ID as quoted by complainant (may be missing/mistyped)
   matchConfidence: number; // confidence of institution resolution at intake (advisory)
   matchReason: string;
-  complainantType: "Student" | "Parent" | "Faculty" | "Staff" | "Anonymous" | "Public";
+  complainantType: "Student" | "Parent" | "Faculty" | "Staff" | "Anonymous" | "Public" | "Other";
   complainantName: string;
-  channel: "AICTE Portal" | "Email" | "Post" | "CPGRAMS" | "Helpline" | "Referred by Ministry" | "Voice Intake" | "Student Portal";
+  channel: "AICTE Portal" | "Email" | "Post" | "CPGRAMS" | "Helpline" | "Referred by Ministry" | "Voice Intake" | "Student Portal" | "Letter" | "Phone" | "Walk-in";
   language: string;
   subject: string;
   description: string;
   originalText?: string; // transcript or text as given, when not in English
   translationSource?: TranslationSource;
   studentComplaintId?: string;
+  complainantContact?: string;
+  duplicateOf?: string;
+  aiSummary?: string;
   lastAction: string;
   lastActionDate: string;
   nextAction: string;
@@ -158,6 +161,8 @@ export interface LinkGroup {
 
 export interface AuditEntry {
   id: string;
+  hash: string;
+  prevHash: string;
   at: string;
   role: string;
   actor: string;
@@ -179,26 +184,50 @@ export interface Settings {
 // ---------------- student layer ----------------
 export type TranslationSource = "original" | "sample" | "llm" | "glossary" | "unavailable";
 
+export interface ResolutionRound {
+  round: number;
+  directions?: string;
+  proof?: { note: string; docs: DocRef[]; at: string; by: string };
+  evidence?: EvidenceReport;
+  verdict?: "done" | "not_done";
+  reason?: string;
+  decidedAt?: string;
+}
+
 export type StudentStatus = "With College" | "Resolved - Pending Verification" | "Closed - Verified" | "Closed - Unverified" | "Escalated to AICTE" | "Closed by AICTE";
 
 export interface StudentAccount {
   id: string;
   apaarId: string;
-  mobile: string;
-  name: string;
-  rollNo: string;
+  mobile: string; // encrypted at rest
+  mobileIndex: string; // keyed hash, for matching at sign-in
+  name: string; // encrypted at rest
+  rollNo: string; // encrypted at rest
   institutionId: string;
   pseudonym: string; // "Student #A7F3"
   pulseTermsDone: string[];
   pulseInvited: boolean;
   demo?: boolean;
+  consents: { version: string; at: string }[];
+  deletionRequestedAt?: string;
+}
+
+export interface Account {
+  id: string;
+  email: string;
+  name: string;
+  role: RoleKey;
+  passwordHash: string;
+  officerId: string;
+  region?: Region;
+  institutionId?: string;
 }
 
 export interface EvidenceReport {
   score: number; // 0-100, advisory
   verdict: "Likely matches" | "Partial match" | "Weak match";
   explanation: string;
-  source: "mock" | "llm";
+  source: "mock" | "groq";
   at: string;
 }
 
@@ -247,6 +276,15 @@ export interface StudentComplaint {
   reminders: CollegeReminder[];
   actions: StudentAction[];
   suspicious: string[]; // visible to AICTE only
+  round: number;
+  rounds: ResolutionRound[];
+  directions?: string;
+  criticalFlag?: boolean;
+  overlapFlags: { caseId: string; confidence: number; reasons: string[] }[]; // visible to the Competent Authority only
+  maskNames: string[];
+  maskLevel: "ai" | "basic";
+  aiSummary?: string;
+  aiCues?: string[];
 }
 
 export const PULSE_QUESTIONS = ["infrastructure", "faculty", "fees", "safety"] as const;
@@ -272,11 +310,6 @@ export interface InstitutionSignals {
   profile?: "silent";
 }
 
-export interface StudentSession {
-  token: string;
-  studentId: string;
-  expiresAt: string;
-}
 
 export interface Db {
   version: number;
@@ -292,10 +325,12 @@ export interface Db {
   counters: { case: number; action: number; audit: number; group: number };
   students: StudentAccount[];
   studentComplaints: StudentComplaint[];
-  studentSessions: StudentSession[];
-  otpRequests: { key: string; at: string; kind: "request" | "fail" }[];
+  accounts: Account[];
+  loginLocks: Record<string, { fails: number; until?: string }>;
+  otpRequests: { key: string; at: string }[];
+  deletionRequests: { id: string; pseudonym: string; studentId: string; at: string; note: string; status: "Open" | "Acknowledged" }[];
   pulse: PulseAggregate[];
   signals: InstitutionSignals[];
 }
 
-export type RoleKey = "ca" | "rb" | "pgrc" | "other" | "ro" | "college";
+export type RoleKey = "ca" | "rb" | "pgrc" | "other" | "ro" | "college" | "student";

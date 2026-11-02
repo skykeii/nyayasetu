@@ -1,3 +1,4 @@
+import { withApi } from "@/lib/api";
 import { audit, getDb, mutate, nextActionId, nextCaseId } from "@/lib/store";
 import { forbidden, json, officerName, viewerFrom } from "@/lib/server";
 import { ROUTING, SCENARIOS, SUBJECTS, TEMPLATES, fill, nextActionFor, variantName } from "@/lib/seed";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 const FIRST = ["Akash", "Bhavya", "Chetan", "Deepika", "Eshan", "Gayatri", "Harsha", "Ira", "Jatin", "Kavya", "Lokesh", "Mansi"];
 const LAST = ["Agarwal", "Bhatt", "Chowdhury", "Dutta", "Gowda", "Hegde", "Jain", "Kapoor", "Menon", "Reddy"];
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const db = getDb();
   const v = viewerFrom(req, db);
   if (!ROLES[v.role].can.simulate) return forbidden("Regional officers cannot inject demo cases");
@@ -111,3 +112,5 @@ export async function POST(req: Request) {
   });
   return json({ id: created.id, bureau, category, institution: inst.name, overlapWith });
 }
+
+export const POST = withApi(handlePOST);

@@ -1,9 +1,11 @@
-import fs from "fs";
-import path from "path";
-import { UPLOAD_DIR, audit, getDb, mutate, nextActionId } from "@/lib/store";
+import { withApi } from "@/lib/api";
+import { z } from "zod";
+import { ApiError, parseForm, validate } from "@/lib/api";
+import { saveUploads } from "@/lib/files";
+import { audit, getDb, mutate, nextActionId } from "@/lib/store";
 import { forbidden, isOwnCase, json, officerName, viewerFrom, viewerUnit, visibleIds } from "@/lib/server";
 import { nextActionFor } from "@/lib/seed";
-import type { ActionType, BureauCode, CaseAction, DocRef } from "@/lib/types";
+import type { ActionType, BureauCode, CaseAction } from "@/lib/types";
 import { BUREAUS } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -11,20 +13,26 @@ export const dynamic = "force-dynamic";
 const KINDS = ["Remark", "Notice Issued", "Reply Received", "Hearing Scheduled", "Accept", "Assign", "Transfer", "Escalate", "Return", "Dispose"] as const;
 type Kind = (typeof KINDS)[number];
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+const Fields = z.object({
+  kind: z.enum(KINDS, { error: "Unknown action" }),
+  remarks: z.string({ error: "Remarks are mandatory" }).trim().min(5, "Remarks are mandatory (min 5 characters) — every action needs a recorded human decision.").max(2000),
+  toBureau: z.string().max(10).optional(),
+  officerId: z.string().max(20).optional(),
+});
+
+async function handlePOST(req: Request, { params }: { params: { id: string } }) {
   const db = getDb();
   const v = viewerFrom(req, db);
   const c = db.cases.find((x) => x.id === params.id);
   if (!c) return json({ error: "Case not found" }, { status: 404 });
   if (!visibleIds(db, v).has(c.id)) return forbidden();
 
-  const form = await req.formData();
-  const kind = String(form.get("kind") ?? "") as Kind;
-  const remarks = String(form.get("remarks") ?? "").trim();
-  const toBureau = String(form.get("toBureau") ?? "") as BureauCode;
-  const officerId = String(form.get("officerId") ?? "");
-  if (!KINDS.includes(kind)) return json({ error: "Unknown action" }, { status: 400 });
-  if (remarks.length < 5) return json({ error: "Remarks are mandatory (min 5 characters) — every action needs a recorded human decision." }, { status: 400 });
+  const form = await parseForm(req);
+  const fields = validate(Fields, { kind: form.get("kind"), remarks: form.get("remarks"), toBureau: form.get("toBureau") ?? undefined, officerId: form.get("officerId") ?? undefined });
+  const kind: Kind = fields.kind;
+  const remarks = fields.remarks;
+  const toBureau = (fields.toBureau ?? "") as BureauCode;
+  const officerId = fields.officerId ?? "";
 
   const own = isOwnCase(v, c);
   if (kind !== "Remark" && !own) return forbidden("Only the handling bureau/cell (or Competent Authority) can take this action. You may add a coordination remark.");
@@ -34,15 +42,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   if (kind === "Assign" && db.officers.find((o) => o.id === officerId)?.bureau !== c.bureau) return json({ error: "Choose an officer of the handling bureau/cell" }, { status: 400 });
 
-  const docs: DocRef[] = [];
-  for (const f of form.getAll("files")) {
-    if (typeof f === "string" || !f.size) continue;
-    if (f.size > 10 * 1024 * 1024) return json({ error: `${f.name} exceeds 10 MB` }, { status: 400 });
-    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-    const safe = `${Date.now()}-${f.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80)}`;
-    fs.writeFileSync(path.join(UPLOAD_DIR, safe), Buffer.from(await f.arrayBuffer()));
-    docs.push({ name: f.name, size: f.size, file: safe });
-  }
+  const { docs, error } = await saveUploads(form.getAll("files"));
+  if (error) throw new ApiError(400, error);
 
   const result = mutate((d) => {
     const cs = d.cases.find((x) => x.id === c.id)!;
@@ -124,3 +125,5 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   });
   return json(result);
 }
+
+export const POST = withApi(handlePOST);

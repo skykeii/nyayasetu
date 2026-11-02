@@ -1,19 +1,52 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { COLLEGE_API_PREFIXES, ROLE_KEYS } from "@/lib/roles";
-import type { RoleKey } from "@/lib/types";
+import { ROLES, canCallApi, canOpenPage } from "@/lib/roles";
+import { SESSION_COOKIE, VIEWER_HEADER, readSession } from "@/lib/session";
 
-/** Every officer API needs a valid role; student routes authenticate with their own session. */
-export function middleware(req: NextRequest) {
-  const { pathname, searchParams } = req.nextUrl;
-  if (pathname.startsWith("/api/student/")) return NextResponse.next();
-  const role = req.headers.get("x-role") ?? searchParams.get("_role");
-  if (!role || !ROLE_KEYS.includes(role as RoleKey)) {
-    return NextResponse.json({ error: "Sign-in required: no valid role on this request" }, { status: 401 });
+const PUBLIC_PAGES = ["/login", "/security"];
+const PUBLIC_API = ["/api/auth/login", "/api/auth/student"];
+const hasPrefix = (path: string, p: string) => path === p || path.startsWith(`${p}/`);
+
+/** The server derives identity only from the signed cookie. Any client-sent identity header is dropped here. */
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+  const isApi = pathname.startsWith("/api/");
+
+  if (isApi && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    const origin = req.headers.get("origin");
+    const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+    let sameOrigin = true;
+    if (origin) {
+      try {
+        sameOrigin = new URL(origin).host === host;
+      } catch {
+        sameOrigin = false;
+      }
+    }
+    if (!sameOrigin) return NextResponse.json({ error: "Request refused" }, { status: 403 });
   }
-  if (role === "college" && !COLLEGE_API_PREFIXES.some((p) => pathname.startsWith(p))) {
-    return NextResponse.json({ error: "Not available to college nodal officers" }, { status: 403 });
+
+  const headers = new Headers(req.headers);
+  headers.delete(VIEWER_HEADER);
+  ["x-role", "x-region", "x-officer", "x-institution", "x-student-session"].forEach((h) => headers.delete(h));
+  const session = await readSession(req.cookies.get(SESSION_COOKIE)?.value);
+
+  if (!session) {
+    if (isApi ? PUBLIC_API.some((p) => hasPrefix(pathname, p)) : PUBLIC_PAGES.some((p) => hasPrefix(pathname, p))) return NextResponse.next({ request: { headers } });
+    if (isApi) return NextResponse.json({ error: "Please sign in" }, { status: 401 });
+    return NextResponse.redirect(new URL("/login", req.url));
   }
-  return NextResponse.next();
+
+  const def = ROLES[session.role];
+  if (!def) return NextResponse.json({ error: "Please sign in" }, { status: 401 });
+  if (isApi) {
+    if (!canCallApi(session.role, pathname)) return NextResponse.json({ error: "Not permitted for your role" }, { status: 403 });
+  } else if (pathname === "/login") {
+    return NextResponse.redirect(new URL(def.landing, req.url));
+  } else if (!PUBLIC_PAGES.some((p) => hasPrefix(pathname, p)) && !canOpenPage(session.role, pathname)) {
+    return NextResponse.redirect(new URL(def.landing, req.url));
+  }
+  headers.set(VIEWER_HEADER, encodeURIComponent(JSON.stringify({ role: session.role, region: session.region, officerId: session.officerId, accountId: session.sub, institutionId: session.institutionId, studentId: session.studentId })));
+  return NextResponse.next({ request: { headers } });
 }
 
-export const config = { matcher: "/api/:path*" };
+export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };

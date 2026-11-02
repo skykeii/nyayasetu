@@ -1,12 +1,22 @@
+import { z } from "zod";
+import { parseJson, withApi } from "@/lib/api";
 import { audit, getDb, mutate, nextActionId } from "@/lib/store";
 import { forbidden, isOwnCase, json, officerName, slaInfo, viewerFrom, viewerUnit, visibleIds } from "@/lib/server";
 import { detectOverlaps, pairKey } from "@/lib/overlap";
 import { ROLES } from "@/lib/roles";
-import type { BureauCode, CaseAction } from "@/lib/types";
+import type { CaseAction } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+const Body = z.object({
+  action: z.enum(["link", "coordinate", "unlink", "dismiss"]),
+  caseIds: z.array(z.string().max(40)).max(30),
+  note: z.string().max(1000).optional(),
+  leadBureau: z.enum(["RB", "PGRC", "AB", "PAPB", "ARC"]).optional(),
+  clusterId: z.string().max(40).optional(),
+});
+
+async function handleGET(req: Request) {
   const db = getDb();
   const v = viewerFrom(req, db);
   const vis = visibleIds(db, v);
@@ -45,10 +55,10 @@ export async function GET(req: Request) {
   return json({ items, minConfidence: db.settings.overlapMinConfidence });
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const db = getDb();
   const v = viewerFrom(req, db);
-  const body = (await req.json()) as { action: "link" | "coordinate" | "unlink" | "dismiss"; caseIds: string[]; note: string; leadBureau?: BureauCode; clusterId?: string };
+  const body = await parseJson(req, Body);
   const note = (body.note ?? "").trim();
   if (!ROLES[v.role].can.link) return forbidden("Your role cannot link or coordinate cases");
   if (note.length < 5) return json({ error: "A coordination note is mandatory (min 5 characters)." }, { status: 400 });
@@ -122,3 +132,6 @@ export async function POST(req: Request) {
   });
   return json(out);
 }
+
+export const GET = withApi(handleGET);
+export const POST = withApi(handlePOST);

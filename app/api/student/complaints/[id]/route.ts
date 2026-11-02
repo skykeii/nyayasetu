@@ -1,34 +1,29 @@
+import { z } from "zod";
+import { ApiError, parseJson, withApi } from "@/lib/api";
 import { audit, getDb, mutate } from "@/lib/store";
 import { json } from "@/lib/server";
-import { escalateToAicte, studentFrom, studentView } from "@/lib/student";
+import { applyVerdict, studentFrom, studentView } from "@/lib/student";
 
 export const dynamic = "force-dynamic";
 
-/** The student's Done / Not done decision on the college's proof. */
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+const Body = z.discriminatedUnion("decision", [
+  z.object({ decision: z.literal("done"), reason: z.string().trim().max(1000).optional() }),
+  z.object({ decision: z.literal("not_done"), reason: z.string({ error: "Say why the problem is not fixed" }).trim().min(5, "Say why the problem is not fixed").max(1000) }),
+]);
+
+/** The student's verdict on the college's proof. It is asked again every round. */
+export const POST = withApi<{ id: string }>(async (req, { params }) => {
   const db = getDb();
   const s = studentFrom(req, db);
-  if (!s) return json({ error: "Please sign in" }, { status: 401 });
   const c = db.studentComplaints.find((x) => x.id === params.id && x.studentId === s.id);
-  if (!c) return json({ error: "Complaint not found" }, { status: 404 });
-  if (c.status !== "Resolved - Pending Verification") return json({ error: "This complaint is not waiting for your verification" }, { status: 400 });
-  const body = (await req.json().catch(() => ({}))) as { decision?: string; note?: string };
-  if (body.decision !== "done" && body.decision !== "not_done") return json({ error: "Choose Done or Not done" }, { status: 400 });
-  const note = (body.note ?? "").trim();
+  if (!c) throw new ApiError(404, "Complaint not found");
+  if (c.status !== "Resolved - Pending Verification") throw new ApiError(400, "This complaint is not waiting for your verdict");
+  const body = await parseJson(req, Body);
   const out = mutate((d) => {
     const x = d.studentComplaints.find((y) => y.id === c.id)!;
-    const now = new Date().toISOString();
-    if (body.decision === "done") {
-      x.status = "Closed - Verified";
-      x.closedAt = now;
-      x.actions.push({ at: now, type: "Student confirmed: Done", by: s.pseudonym, remarks: note || "Closed as verified by the student." });
-    } else {
-      x.reopened = true;
-      const cs = escalateToAicte(d, x, `student marked the college's resolution as Not done${note ? `: ${note}` : ""}`);
-      x.actions.push({ at: now, type: "Student responded: Not done", by: s.pseudonym, remarks: `Reopened and escalated to ${x.routedBureau} at AICTE as ${cs.id}, not returned to the college.${note ? ` Student note: ${note}` : ""}` });
-    }
-    audit(d, { role: "student", actor: s.pseudonym, action: body.decision === "done" ? "STUDENT_VERIFIED" : "STUDENT_NOT_DONE", target: x.id, detail: x.caseId ? `Escalated as ${x.caseId}` : "Closed as verified" });
+    applyVerdict(d, x, body.decision, body.reason ?? "");
+    audit(d, { role: "student", actor: s.pseudonym, action: body.decision === "done" ? "STUDENT_VERIFIED" : "STUDENT_NOT_DONE", target: x.id, detail: `Round ${x.round}${x.caseId ? `, AICTE case ${x.caseId}` : ""}${x.criticalFlag ? ", flagged Critical" : ""}` });
     return studentView(d, x);
   });
   return json({ complaint: out });
-}
+});

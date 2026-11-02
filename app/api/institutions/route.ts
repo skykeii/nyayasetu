@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { parseQuery, withApi } from "@/lib/api";
 import { getDb } from "@/lib/store";
 import { json, slaInfo, viewerFrom, visibleIds } from "@/lib/server";
 import { detectOverlaps } from "@/lib/overlap";
@@ -5,13 +7,13 @@ import { riskFor } from "@/lib/risk";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const db = getDb();
   const v = viewerFrom(req, db);
   const vis = visibleIds(db, v);
-  const u = new URL(req.url);
-  const q = (u.searchParams.get("q") ?? "").toLowerCase().trim();
-  const region = u.searchParams.get("region") ?? "";
+  const query = parseQuery(req, z.object({ q: z.string().max(120).optional(), region: z.string().max(40).optional() }));
+  const q = (query.q ?? "").toLowerCase().trim();
+  const region = query.region ?? "";
   const { clusters } = detectOverlaps(db);
   let insts = db.institutions;
   if (v.role === "ro") insts = insts.filter((i) => i.region === v.region);
@@ -37,3 +39,5 @@ export async function GET(req: Request) {
     .sort((a, b) => b.overlaps - a.overlaps || b.open - a.open || b.total - a.total);
   return json({ items, total: items.length });
 }
+
+export const GET = withApi(handleGET);

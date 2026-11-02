@@ -103,6 +103,38 @@ export function CaseDrawer({ id, onClose }: { id: string | null; onClose: () => 
   );
 }
 
+function CaseBrief({ caseId }: { caseId: string }) {
+  const { api, toast } = useRole();
+  const [out, setOut] = React.useState<{ brief: string; source: string } | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      setOut(await api<{ brief: string; source: string }>("/api/ai/brief", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: caseId }) }));
+    } catch (e) {
+      toast({ title: "No brief", body: (e as Error).message, tone: "red" });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
+      {out ? (
+        <>
+          <div className="mb-1">
+            <Advisory>{out.source === "groq" ? "AI case brief" : "offline summary, AI unavailable"}</Advisory>
+          </div>
+          <p className="text-[13.5px] leading-relaxed text-slate-200">{out.brief}</p>
+        </>
+      ) : (
+        <Button size="sm" variant="secondary" onClick={run} loading={busy}>
+          Case brief
+        </Button>
+      )}
+    </section>
+  );
+}
+
 function RoutingCard({ caseId, bureau, routing, onDone }: { caseId: string; bureau: string; routing: RoutingSuggestion; onDone: () => void }) {
   const { api, toast, bump } = useRole();
   const [busy, setBusy] = React.useState(false);
@@ -145,8 +177,6 @@ function RoutingCard({ caseId, bureau, routing, onDone }: { caseId: string; bure
 
 function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
   const { data, error, loading, reload } = useApi<Detail>(`/api/cases/${id}`);
-  const { headers } = useRole();
-  const q = new URLSearchParams({ _role: headers["x-role"], _region: headers["x-region"], ...(headers["x-officer"] ? { _officer: headers["x-officer"] } : {}) }).toString();
   if (error)
     return (
       <div className="p-6">
@@ -261,11 +291,14 @@ function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
           <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-[12.5px] text-slate-400">
             <span>
               Complainant: <span className="text-slate-200">{c.complainantName}</span> ({c.complainantType})
+              {c.complainantContact && <span className="text-slate-300"> · {c.complainantContact}</span>}
             </span>
             <span>Channel: {c.channel}</span>
             <span>Language: {c.language}{c.language !== "English" ? " (shown in English translation)" : ""}</span>
           </div>
         </section>
+
+        <CaseBrief caseId={c.id} />
 
         {data.routing && <RoutingCard caseId={c.id} bureau={c.bureau} routing={data.routing} onDone={reload} />}
 
@@ -298,7 +331,7 @@ function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
                     <div className="mt-1.5 flex flex-wrap gap-2">
                       {a.docs.map((d) =>
                         d.file ? (
-                          <a key={d.name} href={`/api/files/${d.file}?${q}`} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[12px] text-slate-200 hover:border-saffron/50">
+                          <a key={d.name} href={`/api/files/${d.file}`} className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[12px] text-slate-200 hover:border-saffron/50">
                             <Paperclip className="h-3 w-3" /> {d.name} <span className="text-slate-500">{Math.round(d.size / 1024)} KB</span>
                           </a>
                         ) : (

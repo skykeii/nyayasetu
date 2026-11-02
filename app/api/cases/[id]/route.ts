@@ -1,3 +1,4 @@
+import { withApi } from "@/lib/api";
 import { audit, getDb, touch } from "@/lib/store";
 import { decorate, forbidden, isOwnCase, json, officerName, viewerFrom, visibleIds } from "@/lib/server";
 import { detectOverlaps } from "@/lib/overlap";
@@ -7,7 +8,7 @@ import { suggestRouting } from "@/lib/student";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+async function handleGET(req: Request, { params }: { params: { id: string } }) {
   const db = getDb();
   const v = viewerFrom(req, db);
   const c = db.cases.find((x) => x.id === params.id);
@@ -58,3 +59,5 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       .map((x) => ({ id: x.id, bureau: x.bureau, status: x.status, category: x.category, dateReceived: x.dateReceived, subject: x.subject })),
   });
 }
+
+export const GET = withApi(handleGET);

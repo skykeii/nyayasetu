@@ -1,4 +1,6 @@
+import bcrypt from "bcryptjs";
 import type {
+  Account,
   BureauCode,
   Case,
   CaseAction,
@@ -20,9 +22,12 @@ import type {
 import { CATEGORIES } from "./types";
 import { DAY, addDays, chance, int, iso, mulberry32, pick, weighted, type Rng } from "./util";
 import { resolveInstitution } from "./resolve";
+import { collegeEmail, DEMO_PASSWORD, officerEmail } from "./demo-accounts";
+import { blindIndex, encryptField } from "./vault";
+import { auditHash } from "./store";
 import { DEMO_COLLEGE_INDEX, DEMO_STUDENTS, PULSE_TERM, VOICE_SAMPLES, categoryOf, mockEvidence, pseudonymFor, severityOf } from "./intake";
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const DEFAULT_SETTINGS: Settings = {
   slaDays: {
@@ -722,6 +727,9 @@ export function seedDb(nowMs = Date.now()): Db {
     return c;
   });
 
+  const seedEntry = { id: "AU1", at: iso(NOW - DAY * 540), role: "system", actor: "System", action: "SEED", target: "database", detail: `Synthetic demo dataset generated: ${institutions.length} institutions, ${cases.length} cases.`, prevHash: "GENESIS" };
+  const seedAudit = { ...seedEntry, hash: auditHash(seedEntry) };
+
   return {
     version: 1,
     seededAt: iso(NOW),
@@ -731,17 +739,7 @@ export function seedDb(nowMs = Date.now()): Db {
     linkGroups: [],
     dismissedPairs: [],
     alertReads: {},
-    audit: [
-      {
-        id: "AU1",
-        at: iso(NOW - DAY * 540),
-        role: "system",
-        actor: "System",
-        action: "SEED",
-        target: "database",
-        detail: `Synthetic demo dataset generated: ${institutions.length} institutions, ${cases.length} cases.`,
-      },
-    ],
+    audit: [seedAudit],
     settings,
     counters: { case: 0, action: actionSeq, audit: 1, group: 0 },
     ...seedStudentLayer(institutions, settings, NOW),
@@ -750,6 +748,19 @@ export function seedDb(nowMs = Date.now()): Db {
 
 // ---------- student layer (own RNG, so the data above stays identical) ----------
 const SILENT_COLLEGES = [21, 39, 51];
+// complaint number -> [demo student, state, second round], so each demo student shows the whole loop
+const DEMO_PLAN: Record<number, [number, StudentStatus, boolean?]> = {
+  0: [0, "With College"],
+  1: [0, "Resolved - Pending Verification"],
+  2: [0, "Escalated to AICTE"],
+  3: [0, "Resolved - Pending Verification", true],
+  4: [1, "With College"],
+  5: [1, "Resolved - Pending Verification", true],
+  6: [1, "Closed - Verified"],
+  7: [2, "With College"],
+  8: [2, "Resolved - Pending Verification"],
+  9: [2, "Escalated to AICTE"],
+};
 // colleges with enough student complaints for a confident handling score
 const FOCUS_COLLEGES = [DEMO_COLLEGE_INDEX, 5, 9, 13, 24, 30, 33, 41, 45, 55, 3, 15, 26, 1, 47, 28];
 const NODAL_FIRST = ["Dr. Ashok", "Prof. Sunita", "Dr. Venkat", "Prof. Rekha", "Dr. Joseph", "Prof. Anil", "Dr. Parveen", "Prof. Geeta"];
@@ -773,17 +784,20 @@ function seedStudentLayer(institutions: Institution[], settings: Settings, NOW: 
 
   const students: StudentAccount[] = DEMO_STUDENTS.map((d, i) => {
     const id = `STU-D${i + 1}`;
-    return { id, apaarId: d.apaarId, mobile: d.mobile, name: d.name, rollNo: d.rollNo, institutionId: institutions[d.collegeIndex].id, pseudonym: pseudonymFor(id), pulseTermsDone: [], pulseInvited: true, demo: true };
+    return { id, apaarId: d.apaarId, mobile: encryptField(d.mobile), mobileIndex: blindIndex(d.mobile), name: encryptField(d.name), rollNo: encryptField(d.rollNo), institutionId: institutions[d.collegeIndex].id, pseudonym: pseudonymFor(id), pulseTermsDone: [], pulseInvited: true, demo: true, consents: [] };
   });
   const newStudent = (inst: Institution): StudentAccount => {
     const n = students.length + 1;
     const id = `STU-${String(n).padStart(4, "0")}`;
+    const mobile = `9${int(r, 100000000, 999999999)}`;
     const s: StudentAccount = {
       id,
       apaarId: `APAAR-${int(r, 100000, 999999)}${n}`,
-      mobile: `9${int(r, 100000000, 999999999)}`,
-      name: `${pick(r, FIRST)} ${pick(r, LAST)}`,
-      rollNo: `${inst.shortName}${int(r, 20, 26)}${String(int(r, 1, 999)).padStart(3, "0")}`,
+      mobile: encryptField(mobile),
+      mobileIndex: blindIndex(mobile),
+      name: encryptField(`${pick(r, FIRST)} ${pick(r, LAST)}`),
+      rollNo: encryptField(`${inst.shortName}${int(r, 20, 26)}${String(int(r, 1, 999)).padStart(3, "0")}`),
+      consents: [],
       institutionId: inst.id,
       pseudonym: pseudonymFor(id),
       pulseTermsDone: [],
@@ -799,8 +813,9 @@ function seedStudentLayer(institutions: Institution[], settings: Settings, NOW: 
   const complaints: StudentComplaint[] = [];
   const samples = VOICE_SAMPLES.filter((s) => s.code !== "en-IN");
   for (let n = 0; n < 120; n++) {
-    const inst = n < 8 ? focus[0] : chance(r, 0.68) ? pick(r, focus) : pick(r, pool);
-    const student = n < 4 ? students[n % 2] : newStudent(inst);
+    const plan = DEMO_PLAN[n];
+    const inst = plan ? institutions[DEMO_STUDENTS[plan[0]].collegeIndex] : n < 12 ? focus[0] : chance(r, 0.68) ? pick(r, focus) : pick(r, pool);
+    const student = plan ? students[plan[0]] : newStudent(inst);
     const sample = n % 8 === 3 ? samples[n % samples.length] : undefined;
     const category = sample ? sample.category : weighted<Category>(r, [["Fee / Refund", 24], ["Faculty Qualification", 10], ["Infrastructure", 22], ["Admission Irregularity", 6], ["Harassment / Ragging", 8], ["Fake Affiliation Claim", 5], ["Exam / Result", 18], ["Placement Misrepresentation", 7]]);
     const tIdx = Math.floor(r() * TEMPLATES[category].length);
@@ -809,10 +824,9 @@ function seedStudentLayer(institutions: Institution[], settings: Settings, NOW: 
     const sla = settings.slaDays[category];
     const q = quality.get(inst.id)!;
     // better-run colleges close more complaints with student confirmation
-    const status: StudentStatus =
-      n < 4
-        ? (["With College", "With College", "Resolved - Pending Verification", "Closed - Verified"] as StudentStatus[])[n]
-        : weighted<StudentStatus>(r, [
+    const status: StudentStatus = plan
+      ? plan[1]
+      : weighted<StudentStatus>(r, [
             ["With College", 34],
             ["Resolved - Pending Verification", 12],
             ["Closed - Verified", 16 + q * 48],
@@ -821,7 +835,8 @@ function seedStudentLayer(institutions: Institution[], settings: Settings, NOW: 
           ]);
     const open = status === "With College";
     const pending = status === "Resolved - Pending Verification";
-    const overdueAtCollege = open && n >= 4 && chance(r, 0.12);
+    const roundTwo = !!plan?.[2];
+    const overdueAtCollege = open && !plan && chance(r, 0.12);
     const age = open ? (overdueAtCollege ? sla + 1 : int(r, 1, Math.max(2, sla - 1))) : pending ? int(r, 6, 30) : int(r, 12, 320);
     const createdMs = NOW - age * DAY - int(r, 1, 20) * 3600000;
     const dueMs = createdMs + sla * DAY;
@@ -848,6 +863,11 @@ function seedStudentLayer(institutions: Institution[], settings: Settings, NOW: 
       reminders: [],
       actions: [{ at: iso2(createdMs), type: "Submitted", by: student.pseudonym, remarks: `Complaint submitted through the student portal (${sample ? "voice" : "text"}).` }],
       suspicious: [],
+      round: 1,
+      rounds: [],
+      overlapFlags: [],
+      maskNames: [],
+      maskLevel: "basic",
     };
     const nodal = signals.find((x) => x.institutionId === c.institutionId)!.nodalOfficer;
     if (open) {
@@ -862,11 +882,24 @@ function seedStudentLayer(institutions: Institution[], settings: Settings, NOW: 
       const docs = [{ name: `Proof_${c.id}.pdf`, size: int(r, 90, 900) * 1000 }];
       c.proof = { note, docs, at: iso2(resolvedMs), by: nodal };
       c.evidence = mockEvidence({ category, note, docs, at: iso2(resolvedMs) });
+      if (roundTwo) {
+        // a first round that the student rejected and AICTE sent back with directions
+        const firstAt = createdMs + DAY;
+        const directions = "Submit dated photographs and the action-taken order signed by the Principal.";
+        c.rounds.push({ round: 1, proof: { note: `First response from the college on the ${category.toLowerCase()} complaint.`, docs: [{ name: `Proof_${c.id}_r1.pdf`, size: 240000 }], at: iso2(firstAt), by: nodal }, evidence: { score: 38, verdict: "Weak match", explanation: "The first note did not describe the work done. Files were not visually inspected.", source: "mock", at: iso2(firstAt) }, verdict: "not_done", reason: "Nothing changed on the ground.", decidedAt: iso2(firstAt + DAY) });
+        c.actions.push({ at: iso2(firstAt), type: "Proof uploaded", by: nodal, remarks: "First response from the college." }, { at: iso2(firstAt + DAY), type: "Student responded: Not done (round 1)", by: student.pseudonym, remarks: "Sent to AICTE. Reason: Nothing changed on the ground." }, { at: iso2(firstAt + 2 * DAY), type: "AICTE returned to college (round 2)", by: `${ROUTING[category]}, AICTE`, remarks: directions });
+        c.round = 2;
+        c.reopened = true;
+        c.directions = directions;
+      }
+      c.rounds.push({ round: c.round, directions: c.directions, proof: c.proof, evidence: c.evidence });
       c.verifyBy = iso(resolvedMs + settings.verifyWindowDays * DAY);
       c.actions.push({ at: iso2(resolvedMs), type: "Proof uploaded", by: nodal, remarks: `Marked resolved, pending student verification. ${note}` });
       const decided = Math.min(NOW - 3600000, resolvedMs + int(r, 1, 6) * DAY);
       if (status === "Closed - Verified") {
         c.closedAt = iso2(decided);
+        c.rounds.at(-1)!.verdict = "done";
+        c.rounds.at(-1)!.decidedAt = iso2(decided);
         c.actions.push({ at: iso2(decided), type: "Student confirmed: Done", by: student.pseudonym, remarks: "Closed as verified by the student." });
       } else if (status === "Closed - Unverified") {
         c.closedAt = iso2(resolvedMs + settings.verifyWindowDays * DAY);
@@ -874,6 +907,9 @@ function seedStudentLayer(institutions: Institution[], settings: Settings, NOW: 
       } else if (status === "Escalated to AICTE") {
         c.escalationLevel = 2;
         c.reopened = true;
+        c.rounds.at(-1)!.verdict = "not_done";
+        c.rounds.at(-1)!.reason = "The problem is still there.";
+        c.rounds.at(-1)!.decidedAt = iso2(decided);
         c.actions.push({ at: iso2(decided), type: "Student responded: Not done", by: student.pseudonym, remarks: `Reopened and escalated to ${ROUTING[category]} at AICTE, not returned to the college.` });
       }
     }
@@ -902,7 +938,22 @@ function seedStudentLayer(institutions: Institution[], settings: Settings, NOW: 
     });
   }
 
-  return { students, studentComplaints: complaints, studentSessions: [], otpRequests: [], pulse, signals };
+  // every official shares the demo password, so one hash keeps seeding fast on serverless
+  const passwordHash = bcrypt.hashSync(DEMO_PASSWORD, 10);
+  const accounts: Account[] = OFFICERS.map((o) => ({
+    id: o.id,
+    email: officerEmail(o.name),
+    name: o.name,
+    role: o.id === "CA-1" ? "ca" : o.bureau === "RO" ? "ro" : o.bureau === "RB" ? "rb" : o.bureau === "PGRC" ? "pgrc" : "other",
+    passwordHash,
+    officerId: o.id,
+    region: o.region,
+  }));
+  for (const inst of institutions) {
+    accounts.push({ id: `COL-${inst.id}`, email: collegeEmail(inst.name), name: signals.find((s) => s.institutionId === inst.id)!.nodalOfficer, role: "college", passwordHash, officerId: `COL-${inst.id}`, region: inst.region, institutionId: inst.id });
+  }
+
+  return { students, studentComplaints: complaints, accounts, loginLocks: {}, otpRequests: [], deletionRequests: [], pulse, signals };
 }
 
 export { OFFICERS, TEMPLATES, SUBJECTS, SCENARIOS, variantName, fill };

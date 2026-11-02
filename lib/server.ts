@@ -1,37 +1,20 @@
 import { NextResponse } from "next/server";
-import type { BureauCode, Case, Db, Region, RoleKey } from "./types";
-import { BUREAUS, REGIONS } from "./types";
+import type { BureauCode, Case, Db } from "./types";
+import { BUREAUS } from "./types";
 import { ROLES, ROLE_KEYS, type Viewer } from "./roles";
 import { detectBursts, detectOverlaps, type OverlapCluster } from "./overlap";
 import { DAY } from "./util";
-import { DEMO_COLLEGE_INDEX, urgencyOf } from "./intake";
+import { urgencyOf } from "./intake";
+import { ApiError } from "./api";
+import { VIEWER_HEADER } from "./session";
 
-export function viewerFrom(req: Request, db: Db): Viewer {
-  const h = req.headers;
-  const sp = new URL(req.url).searchParams;
-  const role = (h.get("x-role") ?? sp.get("_role")) as RoleKey | null;
-  // middleware.ts answers 401 before a route runs; this keeps a missing role from ever widening access
-  if (!role || !ROLE_KEYS.includes(role)) throw new Error("viewerFrom called without a valid role");
-  if (role === "college") {
-    const inst = db.institutions.find((i) => i.id === (h.get("x-institution") ?? sp.get("_institution"))) ?? db.institutions[DEMO_COLLEGE_INDEX];
-    return { role, region: inst.region, officerId: `COL-${inst.id}`, institutionId: inst.id };
-  }
-  const regionRaw = (h.get("x-region") ?? sp.get("_region")) as Region | null;
-  const region: Region = regionRaw && REGIONS.includes(regionRaw) ? regionRaw : "Southern";
-  const def = ROLES[role];
-  let officerId = h.get("x-officer") ?? sp.get("_officer") ?? def.defaultOfficer;
-  const off = db.officers.find((o) => o.id === officerId);
-  const okOfficer =
-    off &&
-    (role === "ca"
-      ? off.id === "CA-1"
-      : role === "ro"
-      ? off.bureau === "RO" && off.region === region
-      : def.bureaus !== "all" && def.bureaus.includes(off.bureau as BureauCode));
-  if (!okOfficer) {
-    officerId = role === "ro" ? db.officers.find((o) => o.bureau === "RO" && o.region === region)?.id ?? def.defaultOfficer : def.defaultOfficer;
-  }
-  return { role, region, officerId };
+/** Identity comes only from middleware.ts, which verifies the signed cookie and drops client-sent headers. */
+export function viewerFrom(req: Request, _db?: Db): Viewer {
+  const raw = req.headers.get(VIEWER_HEADER);
+  if (!raw) throw new ApiError(401, "Please sign in");
+  const v = JSON.parse(decodeURIComponent(raw)) as Viewer;
+  if (!ROLE_KEYS.includes(v.role)) throw new ApiError(401, "Please sign in");
+  return v;
 }
 
 /** The unit an action is recorded under for this viewer. */
@@ -43,6 +26,7 @@ export function viewerUnit(db: Db, v: Viewer): BureauCode | "RO" | "CA" {
 }
 
 export function officerName(db: Db, v: Viewer) {
+  if (v.role === "student") return db.students.find((x) => x.id === v.studentId)?.pseudonym ?? "Student";
   if (v.role === "college") return db.signals.find((x) => x.institutionId === v.institutionId)?.nodalOfficer ?? "College Nodal Officer";
   return db.officers.find((o) => o.id === v.officerId)?.name ?? "Officer";
 }
@@ -109,7 +93,7 @@ export function decorate(db: Db, c: Case, clusters: OverlapCluster[], opts: { fu
   };
   if (opts.v && opts.v.role !== "ca" && opts.v.role !== "ro" && !isOwnCase(opts.v, c)) {
     // partner bureau view: hide complainant identity
-    return { ...base, complainantName: "(visible to handling unit)", partnerView: true };
+    return { ...base, complainantName: "(visible to handling unit)", complainantContact: undefined, partnerView: true };
   }
   return { ...base, partnerView: false };
 }
@@ -146,7 +130,7 @@ function studentAlerts(db: Db, v: Viewer): Alert[] {
       const inScope = regionIds ? regionIds.has(s.institutionId) : def.bureaus === "all" || def.bureaus.includes(s.routedBureau);
       if (!inScope) continue;
       const id = `stu:${s.id}`;
-      out.push({ id, type: "student", severity: s.reopened ? "high" : "medium", title: s.reopened ? "Student marked Not done: reopened to AICTE" : "Student complaint overdue at college: escalated to AICTE", message: `${s.id} · ${s.pseudonym} · ${s.category} · ${instName(s.institutionId)}`, caseIds: s.caseId ? [s.caseId] : [], institutionId: s.institutionId, at: s.actions.at(-1)?.at ?? s.createdAt, href: `/grievances?open=${s.id}`, read: reads.has(id) });
+      out.push({ id, type: "student", severity: s.criticalFlag ? "critical" : s.reopened ? "high" : "medium", title: s.criticalFlag ? "Critical: two Not done verdicts from the student" : s.reopened ? "Student marked Not done: reopened to AICTE" : "Student complaint overdue at college: escalated to AICTE", message: `${s.id} · ${s.pseudonym} · ${s.category} · ${instName(s.institutionId)}`, caseIds: s.caseId ? [s.caseId] : [], institutionId: s.institutionId, at: s.actions.at(-1)?.at ?? s.createdAt, href: `/grievances?open=${s.id}`, read: reads.has(id) });
     }
   }
   return out;

@@ -1,10 +1,11 @@
+import { withApi } from "@/lib/api";
 import { getDb } from "@/lib/store";
 import { json, slaInfo, viewerFrom, visibleIds } from "@/lib/server";
 import type { Case } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const db = getDb();
   const v = viewerFrom(req, db);
   const vis = visibleIds(db, v);
@@ -35,3 +36,5 @@ export async function GET(req: Request) {
   };
   return json({ states: measure((i) => i.state), regions: measure((i) => i.region) });
 }
+
+export const GET = withApi(handleGET);

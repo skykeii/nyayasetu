@@ -29,7 +29,7 @@ const TITLES: Record<string, string> = {
   rb: "Regulation Bureau desk",
   pgrc: "Grievance Redressal Cell desk",
   other: "Bureau / Cell desk",
-  ro: "Regional office desk",
+  ro: "Regional dashboard",
 };
 
 export default function CommandCenter() {
@@ -229,7 +229,7 @@ export default function CommandCenter() {
       <Card className="min-w-0">
         <CardHeader
           title="Regional heatmap"
-          sub="Select a state to open that region's cases."
+          sub="Select a state to open its cases."
           right={
             <Link href="/heatmap" className="text-[13px] font-medium text-saffron hover:underline">
               Full heatmap

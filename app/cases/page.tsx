@@ -9,7 +9,7 @@ import { CaseDrawer } from "@/components/case-drawer";
 import type { CaseView } from "@/lib/server";
 import { fmtDate, toCsv } from "@/lib/util";
 
-const KEYS = ["q", "bureau", "region", "category", "status", "from", "to", "overlap", "sort"] as const;
+const KEYS = ["q", "bureau", "region", "state", "category", "status", "from", "to", "overlap", "sort"] as const;
 type F = Record<(typeof KEYS)[number], string>;
 
 export default function CasesPage() {

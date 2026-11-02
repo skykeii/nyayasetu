@@ -1,3 +1,4 @@
+import { withApi } from "@/lib/api";
 import { getDb } from "@/lib/store";
 import { decorate, forbidden, json, viewerFrom, visibleIds } from "@/lib/server";
 import { detectOverlaps } from "@/lib/overlap";
@@ -6,7 +7,7 @@ import { riskFor } from "@/lib/risk";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+async function handleGET(req: Request, { params }: { params: { id: string } }) {
   const db = getDb();
   const v = viewerFrom(req, db);
   const inst = db.institutions.find((i) => i.id === params.id);
@@ -42,3 +43,5 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     timeline,
   });
 }
+
+export const GET = withApi(handleGET);

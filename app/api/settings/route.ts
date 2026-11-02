@@ -1,30 +1,40 @@
+import { z } from "zod";
+import { ApiError, parseJson, withApi } from "@/lib/api";
 import { audit, getDb, mutate, recomputeSla } from "@/lib/store";
-import { forbidden, json, officerName, viewerFrom } from "@/lib/server";
-import { CATEGORIES, type Settings } from "@/lib/types";
+import { json, officerName, viewerFrom } from "@/lib/server";
+import { CATEGORIES } from "@/lib/types";
 import { DEFAULT_SETTINGS } from "@/lib/seed";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  return json({ settings: getDb().settings, defaults: DEFAULT_SETTINGS });
-}
+const Num = z.coerce.number().optional();
+const Body = z.object({
+  slaDays: z.record(z.string(), z.coerce.number()).optional(),
+  reminderNoActionDays: Num,
+  warningWindowDays: Num,
+  overlapMinConfidence: Num,
+  collegeReminders: z.object({ farDays: Num, nearDays: Num, finalDays: Num }).optional(),
+  verifyWindowDays: Num,
+  escalationGraceDays: Num,
+});
 
-export async function PUT(req: Request) {
+export const GET = withApi(async () => json({ settings: getDb().settings, defaults: DEFAULT_SETTINGS }));
+
+export const PUT = withApi(async (req) => {
   const db = getDb();
   const v = viewerFrom(req, db);
-  if (v.role !== "ca") return forbidden("Only the Competent Authority can change SLA settings");
-  const body = (await req.json()) as Partial<Settings>;
+  if (v.role !== "ca") throw new ApiError(403, "Only the Competent Authority can change SLA settings");
+  const body = await parseJson(req, Body);
   const clamp = (n: unknown, lo: number, hi: number, d: number) => {
     const x = Number(n);
-    return Number.isFinite(x) ? Math.min(hi, Math.max(lo, Math.round(x))) : d;
+    return n !== undefined && Number.isFinite(x) ? Math.min(hi, Math.max(lo, Math.round(x))) : d;
   };
   const out = mutate((d) => {
     const before = JSON.stringify(d.settings);
     for (const c of CATEGORIES) d.settings.slaDays[c] = clamp(body.slaDays?.[c], 1, 365, d.settings.slaDays[c]);
     d.settings.reminderNoActionDays = clamp(body.reminderNoActionDays, 1, 90, d.settings.reminderNoActionDays);
     d.settings.warningWindowDays = clamp(body.warningWindowDays, 0, 30, d.settings.warningWindowDays);
-    const mc = Number(body.overlapMinConfidence);
-    if (Number.isFinite(mc)) d.settings.overlapMinConfidence = Math.min(0.95, Math.max(0.4, Math.round(mc * 100) / 100));
+    if (body.overlapMinConfidence !== undefined && Number.isFinite(body.overlapMinConfidence)) d.settings.overlapMinConfidence = Math.min(0.95, Math.max(0.4, Math.round(body.overlapMinConfidence * 100) / 100));
     d.settings.collegeReminders = {
       farDays: clamp(body.collegeReminders?.farDays, 1, 30, d.settings.collegeReminders.farDays),
       nearDays: clamp(body.collegeReminders?.nearDays, 1, 30, d.settings.collegeReminders.nearDays),
@@ -37,4 +47,4 @@ export async function PUT(req: Request) {
     return d.settings;
   });
   return json({ settings: out });
-}
+});

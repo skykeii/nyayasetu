@@ -3,18 +3,19 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, Building2, ClipboardList, FileBarChart2, GitMerge, GraduationCap, LayoutDashboard, Map as MapIcon, Mic, Plus, School, Search, Settings2, ShieldCheck, UserCircle2, X, ChevronDown } from "lucide-react";
-import { RoleProvider, useApi, useRole, type Toast } from "./role-provider";
-import { Button, Select, cn } from "./ui";
+import { Bell, Building2, ClipboardList, FileBarChart2, GitMerge, GraduationCap, LayoutDashboard, LogOut, Map as MapIcon, Mic, Plus, School, Search, Settings2, ShieldCheck, UserCircle2, X, ChevronDown } from "lucide-react";
+import { RoleProvider, signOutNow, useApi, useRole, type Toast } from "./role-provider";
+import { BridgeMark } from "./bridge-mark";
+import { Button, cn } from "./ui";
 import { OverlapPulse } from "./bits";
 import { CommandPalette } from "./command-palette";
-import { ROLES, ROLE_KEYS } from "@/lib/roles";
-import type { Region, RoleKey } from "@/lib/types";
+import { ROLES } from "@/lib/roles";
 import type { Alert } from "@/lib/server";
 import { fmtDateTime } from "@/lib/util";
 
 const NAV = [
   { href: "/", label: "Command center", icon: LayoutDashboard },
+  { href: "/desk", label: "My desk", icon: LayoutDashboard },
   { href: "/college", label: "College desk", icon: School },
   { href: "/cases", label: "Cases", icon: ClipboardList },
   { href: "/intake", label: "Voice and text intake", icon: Mic },
@@ -27,26 +28,6 @@ const NAV = [
   { href: "/audit", label: "Audit trail", icon: ShieldCheck },
   { href: "/settings", label: "SLA settings", icon: Settings2 },
 ];
-
-export function BridgeMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 40 40" className={className} aria-hidden>
-      <defs>
-        <linearGradient id="nm" x1="0" x2="1">
-          <stop offset="0" stopColor="#FF9933" />
-          <stop offset="0.5" stopColor="#A78BFA" />
-          <stop offset="1" stopColor="#34D399" />
-        </linearGradient>
-      </defs>
-      <rect x="1" y="1" width="38" height="38" rx="10" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.12)" />
-      <path d="M7 27 Q20 8 33 27" fill="none" stroke="url(#nm)" strokeWidth="2.6" strokeLinecap="round" />
-      <path d="M6 27.5 H34" stroke="#e7eaf3" strokeWidth="2" strokeLinecap="round" />
-      {[12, 16.5, 20, 23.5, 28].map((x, i) => (
-        <path key={x} d={`M${x} 27 V${[21.5, 18.2, 17.4, 18.2, 21.5][i]}`} stroke="#8b93ab" strokeWidth="1.2" />
-      ))}
-    </svg>
-  );
-}
 
 function Toaster({ items, dismiss }: { items: (Toast & { id: number })[]; dismiss: (id: number) => void }) {
   return (
@@ -90,8 +71,8 @@ function Toaster({ items, dismiss }: { items: (Toast & { id: number })[]; dismis
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  // students sign in separately and never see the officer shell or send role headers
-  if (path === "/student" || path.startsWith("/student/")) return <>{children}</>;
+  // these pages have no officer shell: students, and anyone not signed in
+  if (["/student", "/login", "/security"].some((p) => path === p || path.startsWith(`${p}/`))) return <>{children}</>;
   return <OfficerShell>{children}</OfficerShell>;
 }
 
@@ -112,20 +93,33 @@ function OfficerShell({ children }: { children: React.ReactNode }) {
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar />
+          <StorageBanner />
           <main className="flex-1 px-4 pb-20 pt-5 md:px-6 xl:px-8">{children}</main>
           <footer className="no-print fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between gap-3 border-t border-white/[0.06] bg-[#0A0F1E]/85 px-4 py-2 text-[12px] text-slate-400 backdrop-blur md:pl-[84px] lg:pl-[256px]">
             <span className="inline-flex items-center gap-2">
               <span className="rounded border border-amber-300/40 bg-amber-400/10 px-1.5 py-0.5 font-semibold text-amber-200">Synthetic demo data</span>
               <span className="hidden sm:inline">Fictional institutions and complainants. Not connected to any AICTE system.</span>
             </span>
-            <span className="hidden md:inline">Machine suggestions are advisory. Every action is an official&apos;s recorded decision.</span>
+            <span className="hidden items-center gap-3 md:inline-flex">
+              Machine suggestions are advisory. Every action is an official&apos;s recorded decision.
+              <Link href="/security" className="text-slate-300 underline hover:text-white">
+                Security &amp; Privacy
+              </Link>
+            </span>
           </footer>
         </div>
       </div>
       <Toaster items={toasts} dismiss={dismiss} />
       <Palette />
+      <RoleAccent />
     </RoleProvider>
   );
+}
+
+function StorageBanner() {
+  const { meta } = useRole();
+  if (meta.storage !== "memory") return null;
+  return <div className="no-print border-b border-amber-300/30 bg-amber-400/10 px-6 py-1.5 text-center text-[12.5px] font-medium text-amber-100">Demo data resets on restart: no database is configured for this deployment.</div>;
 }
 
 function Sidebar() {
@@ -156,8 +150,8 @@ function Sidebar() {
                 active ? "bg-white/[0.07] text-white" : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-100"
               )}
             >
-              {active && <motion.span layoutId="navbar" className="absolute left-0 top-2 h-6 w-[3px] rounded-r bg-saffron" />}
-              <n.icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-saffron")} />
+              {active && <motion.span layoutId="navbar" className="absolute left-0 top-2 h-6 w-[3px] rounded-r bg-[var(--accent)]" />}
+              <n.icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-[var(--accent)]")} />
               <span className="hidden lg:inline">{n.label}</span>
               {!!badge && (
                 <span className={cn("num ml-auto hidden rounded-full px-1.5 text-[11px] font-semibold lg:inline", n.href === "/overlaps" ? "bg-violet-500/25 text-violet-200" : "bg-red-500/20 text-red-200")}>{badge}</span>
@@ -176,8 +170,8 @@ function Sidebar() {
   );
 }
 
-function RoleSwitcher() {
-  const { role, region, officerId, institutionId, setRole, meta } = useRole();
+function UserMenu() {
+  const { meta, role, region } = useRole();
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
@@ -186,75 +180,45 @@ function RoleSwitcher() {
     return () => document.removeEventListener("mousedown", h);
   }, []);
   const def = ROLES[role];
-  const officers = (meta?.officers ?? []).filter((o) =>
-    role === "ca" ? o.id === "CA-1" : role === "ro" ? o.bureau === "RO" && o.region === region : def.bureaus !== "all" && def.bureaus.includes(o.bureau as never)
-  );
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen((o) => !o)} className="flex h-10 items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.04] pl-2 pr-2.5 text-left hover:bg-white/[0.07]" aria-expanded={open}>
-        <UserCircle2 className="h-6 w-6 text-saffron" />
+      <button onClick={() => setOpen((o) => !o)} className="flex h-10 items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.04] pl-2 pr-2.5 text-left hover:bg-white/[0.07]" aria-expanded={open} aria-label="Account menu">
+        <UserCircle2 className="h-6 w-6" style={{ color: def.accent }} />
         <span className="hidden min-w-0 sm:block">
-          <span className="block max-w-[180px] truncate text-[13px] font-medium leading-tight text-white">{meta?.viewer.officerName ?? "…"}</span>
-          <span className="block max-w-[180px] truncate text-[11.5px] leading-tight text-slate-400">
-            {def.short}
-            {role === "ro" ? `, ${region}` : ""}
+          <span className="block max-w-[180px] truncate text-[13px] font-medium leading-tight text-white">{meta.viewer.officerName}</span>
+          <span className="block max-w-[180px] truncate text-[11.5px] leading-tight" style={{ color: def.accent }}>
+            {def.badge}
           </span>
         </span>
         <ChevronDown className="h-4 w-4 text-slate-400" />
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="glass-strong absolute right-0 top-12 z-50 w-80 rounded-xl p-4 shadow-2xl">
-            <div className="mb-3 text-[13px] text-slate-300">Demo sign-in. Choose who you are; the server enforces what this role can see and do.</div>
-            <div className="space-y-1">
-              {ROLE_KEYS.map((k) => (
-                <button
-                  key={k}
-                  onClick={() => setRole(k as RoleKey, undefined, null)}
-                  className={cn("flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[13.5px]", role === k ? "bg-saffron/15 text-white ring-1 ring-saffron/40" : "text-slate-300 hover:bg-white/[0.05]")}
-                >
-                  {ROLES[k as RoleKey].label}
-                </button>
-              ))}
+          <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="glass-strong absolute right-0 top-12 z-50 w-72 rounded-xl p-4 shadow-2xl">
+            <div className="text-[14px] font-semibold text-white">{meta.viewer.officerName}</div>
+            {meta.viewer.designation && <div className="text-[12.5px] text-slate-400">{meta.viewer.designation}</div>}
+            <div className="mt-2 inline-block rounded border px-1.5 py-0.5 text-[11.5px] font-medium" style={{ color: def.accent, borderColor: def.accent }}>
+              {def.badge}
             </div>
-            {role === "ro" && (
-              <div className="mt-3">
-                <div className="mb-1 text-[12px] text-slate-400">Region</div>
-                <Select value={region} onChange={(e) => setRole("ro", e.target.value as Region, null)}>
-                  {(meta?.regions ?? []).map((r) => (
-                    <option key={r}>{r}</option>
-                  ))}
-                </Select>
-              </div>
-            )}
-            {role === "college" && (
-              <div className="mt-3">
-                <div className="mb-1 text-[12px] text-slate-400">College</div>
-                <Select value={institutionId ?? meta?.viewer.institutionId ?? ""} onChange={(e) => setRole("college", undefined, null, e.target.value)}>
-                  {(meta?.colleges ?? []).map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            )}
-            {officers.length > 1 && (
-              <div className="mt-3">
-                <div className="mb-1 text-[12px] text-slate-400">Acting officer</div>
-                <Select value={officerId ?? meta?.viewer.officerId ?? ""} onChange={(e) => setRole(role, region, e.target.value)}>
-                  {officers.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.name} — {o.designation}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            )}
+            <div className="mt-2 text-[12.5px] text-slate-400">{def.regional || role === "college" ? `${region} region` : def.bureaus === "all" ? "National scope" : `Unit: ${(def.bureaus as string[]).join(", ")}`}</div>
+            <Button variant="secondary" size="sm" className="mt-3 w-full" onClick={signOutNow}>
+              <LogOut className="h-4 w-4" /> Sign out
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function AiBadge() {
+  const { data } = useApi<{ live: boolean }>("/api/ai/status", { interval: 60000 });
+  if (!data) return null;
+  return (
+    <span title="AI output is always advisory" className={cn("hidden items-center gap-1.5 rounded-md border px-2 py-1 text-[11.5px] font-medium lg:inline-flex", data.live ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-200" : "border-white/10 bg-white/[0.04] text-slate-400")}>
+      <span className={cn("h-1.5 w-1.5 rounded-full", data.live ? "bg-emerald-300" : "bg-slate-500")} />
+      {data.live ? "AI: Groq live" : "AI: offline fallback"}
+    </span>
   );
 }
 
@@ -323,6 +287,12 @@ function Bell2() {
   );
 }
 
+/** Gives each role its own accent wherever the shell uses --accent. */
+function RoleAccent() {
+  const { role } = useRole();
+  return <style>{`:root{--accent:${ROLES[role].accent}}`}</style>;
+}
+
 function Palette() {
   const { role } = useRole();
   return <CommandPalette pages={NAV.filter((n) => ROLES[role].nav.includes(n.href)).map((n) => ({ href: n.href, label: n.label }))} />;
@@ -353,7 +323,7 @@ function Topbar() {
   };
   return (
     <header className="no-print sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-white/[0.06] bg-[#0A0F1E]/75 px-4 backdrop-blur-xl md:px-6 xl:px-8">
-      <Link href="/" className="md:hidden">
+      <Link href={allowed[0]} className="md:hidden">
         <BridgeMark className="h-8 w-8" />
       </Link>
       <form
@@ -379,8 +349,9 @@ function Topbar() {
             Simulate incoming case
           </Button>
         )}
+        <AiBadge />
         <Bell2 />
-        <RoleSwitcher />
+        <UserMenu />
       </div>
     </header>
   );
