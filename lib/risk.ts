@@ -130,7 +130,7 @@ export function allRisk(db: Db): Map<string, RiskResult> {
     const merged = clusters.filter((cl) => cl.institutionId === inst.id).reduce((sum, cl) => sum + cl.caseIds.filter((id) => cases.some((c) => c.id === id)).length - 1, 0);
     stats.set(inst.id, rawFactors(db, inst, cases, students));
     context.set(inst.id, {
-      counted: Math.max(0, cases.length - Math.max(0, merged)) + students.length,
+      counted: Math.max(0, cases.length - Math.max(0, merged)) + students.filter((s) => !s.caseId).length,
       excluded: all.length - cases.length,
       merged: Math.max(0, merged),
       capped,

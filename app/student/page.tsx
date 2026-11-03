@@ -1,10 +1,12 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Bell, CheckCircle2, Clock, GraduationCap, LogOut, Paperclip, Send, ShieldCheck, TriangleAlert, XCircle } from "lucide-react";
 import { Advisory, Badge, Button, Card, CardHeader, Label, Skeleton, Tabs, Textarea, cn } from "@/components/ui";
-import { ErrorNote } from "@/components/bits";
-import { apiFetch, signOutNow } from "@/components/role-provider";
+import { ErrorNote, Updated } from "@/components/bits";
+import { apiFetch, signOutNow, usePoll } from "@/components/role-provider";
+import { DocLink } from "@/components/upload";
 import { VoiceIntake, type VoiceValue } from "@/components/voice-intake";
 import { CONSENT_VERSION } from "@/lib/intake";
 import type { EvidenceReport, DocRef, ResolutionRound, Severity, StudentStatus } from "@/lib/types";
@@ -32,13 +34,13 @@ interface MyComplaint {
   verifyBy?: string;
   caseId?: string;
   reminders: { at: string; message: string }[];
-  actions: { at: string; type: string; by: string; remarks: string }[];
+  actions: { at: string; type: string; by: string; remarks: string; docs?: DocRef[] }[];
   urgency: { score: number; label: Severity; reason: string; daysLeft: number };
 }
 interface Me {
   student: { pseudonym: string; institution: string; institutionId: string; name: string; mobile: string; rollNo: string; apaarId: string };
   complaints: MyComplaint[];
-  notifications: { at: string; title: string; complaintId: string; subject: string }[];
+  notifications: { at: string; title: string; complaintId: string; subject: string; href: string }[];
   limits: { openComplaints: number; open: number };
   pulse: { term: string; invited: boolean; done: boolean };
   consent: { current: string; records: { version: string; at: string }[]; deletionRequestedAt?: string };
@@ -89,12 +91,18 @@ function Tracker({ c }: { c: MyComplaint }) {
   );
 }
 
-function ComplaintCard({ c, onDone }: { c: MyComplaint; onDone: () => void }) {
+function ComplaintCard({ c, onDone, focused }: { c: MyComplaint; onDone: () => void; focused?: boolean }) {
   const [reason, setReason] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
   const [notDone, setNotDone] = React.useState(false);
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(!!focused);
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!focused) return;
+    setOpen(true);
+    ref.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [focused]);
   const decide = async (decision: "done" | "not_done") => {
     setBusy(true);
     setErr(null);
@@ -110,8 +118,8 @@ function ComplaintCard({ c, onDone }: { c: MyComplaint; onDone: () => void }) {
   const pending = c.status === "Resolved - Pending Verification";
   const withCollege = c.status === "With College";
   return (
-    <Card className={cn("p-4", pending && "border-sky-300/40")}>
-      <div className="flex flex-wrap items-start justify-between gap-2">
+    <Card className={cn("scroll-mt-4 p-4", pending && "border-sky-300/40", focused && "ring-2 ring-[var(--accent)]/50")}>
+      <div ref={ref} id={`complaint-${c.id}`} className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="text-[14.5px] font-semibold text-white">{c.subject}</div>
           <div className="num text-[13px] text-slate-500">
@@ -196,6 +204,13 @@ function ComplaintCard({ c, onDone }: { c: MyComplaint; onDone: () => void }) {
               <li key={i}>
                 <span className="text-slate-200">{a.type}</span> · {fmtDateTime(a.at)}
                 <div className="text-slate-500">{a.remarks}</div>
+                {!!a.docs?.length && (
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {a.docs.map((d) => (
+                      <DocLink key={d.file ?? d.name} d={d} base="/api/student/files" />
+                    ))}
+                  </div>
+                )}
               </li>
             ))}
           </ol>
@@ -389,10 +404,12 @@ function NotificationBell({ me }: { me: Me }) {
           {me.notifications.length === 0 && <div className="p-3 text-[14px] text-slate-400">No updates yet.</div>}
           <ul className="scroll-thin max-h-80 overflow-y-auto">
             {me.notifications.map((n, i) => (
-              <li key={i} className="rounded-lg px-2.5 py-2 text-[13.5px] hover:bg-white/[0.05]">
-                <div className="font-medium text-white">{n.title}</div>
-                <div className="truncate text-slate-400">{n.complaintId}: {n.subject}</div>
-                <div className="text-[12.5px] text-slate-500">{fmtDateTime(n.at)}</div>
+              <li key={i}>
+                <Link href={n.href} onClick={() => setOpen(false)} className="block rounded-lg px-2.5 py-2 text-[13.5px] hover:bg-white/[0.05]">
+                  <div className="font-medium text-white">{n.title}</div>
+                  <div className="truncate text-slate-400">{n.complaintId}: {n.subject}</div>
+                  <div className="text-[12.5px] text-slate-500">{fmtDateTime(n.at)}</div>
+                </Link>
               </li>
             ))}
           </ul>
@@ -402,14 +419,35 @@ function NotificationBell({ me }: { me: Me }) {
   );
 }
 
-export default function StudentPortal() {
+export default function StudentPortalWrap() {
+  return (
+    <React.Suspense fallback={<Skeleton className="m-6 h-64" />}>
+      <StudentPortal />
+    </React.Suspense>
+  );
+}
+
+function StudentPortal() {
   const [me, setMe] = React.useState<Me | null>(null);
   const [err, setErr] = React.useState<string | null>(null);
   const [tab, setTab] = React.useState<"mine" | "new" | "pulse" | "profile">("mine");
+  const [updatedAt, setUpdatedAt] = React.useState<number | null>(null);
+  const focus = useSearchParams().get("complaint");
   const load = React.useCallback(() => {
-    apiFetch<Me>("/api/student/me").then(setMe).catch((e: Error) => setErr(e.message));
+    apiFetch<Me>("/api/student/me")
+      .then((d) => {
+        setMe(d);
+        setErr(null);
+        setUpdatedAt(Date.now());
+      })
+      .catch((e: Error) => setErr(e.message));
   }, []);
   React.useEffect(load, [load]);
+  // refresh like the officer pages, but not while the student is writing a complaint
+  usePoll(() => tab !== "new" && load(), 5000);
+  React.useEffect(() => {
+    if (focus) setTab("mine");
+  }, [focus]);
   const waiting = me?.complaints.filter((c) => c.status === "Resolved - Pending Verification") ?? [];
   return (
     <div className="mx-auto min-h-screen max-w-[860px] px-4 pb-16 pt-6" style={{ "--accent": "#9A3D4A" } as React.CSSProperties}>
@@ -441,7 +479,11 @@ export default function StudentPortal() {
                   {me.student.pseudonym} <span className="rounded border border-[var(--accent)] px-1.5 py-0.5 text-[12px] font-medium text-[var(--accent)]">Student</span>
                 </span>
               }
-              sub={me.student.institution}
+              sub={
+                <span className="flex flex-wrap items-center gap-x-3">
+                  {me.student.institution} <Updated at={updatedAt} />
+                </span>
+              }
             />
           </Card>
           {waiting.length > 0 && (
@@ -462,7 +504,7 @@ export default function StudentPortal() {
           {tab === "mine" && (
             <div className="space-y-3">
               {[...me.complaints].sort((a, b) => Number(b.status === "Resolved - Pending Verification") - Number(a.status === "Resolved - Pending Verification")).map((c) => (
-                <ComplaintCard key={c.id} c={c} onDone={load} />
+                <ComplaintCard key={c.id} c={c} onDone={load} focused={focus === c.id} />
               ))}
               {me.complaints.length === 0 && <Card className="p-8 text-center text-sm text-slate-400">No complaints yet. Use the New complaint tab when you need to raise something.</Card>}
             </div>

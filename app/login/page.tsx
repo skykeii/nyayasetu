@@ -67,7 +67,9 @@ export default function LoginPage() {
     }
   };
   const finish = (d: { landing?: string }) => {
-    window.location.href = d.landing ?? "/";
+    // the server sends a signed-in user on to the page they asked for, if their role may open it
+    const next = new URLSearchParams(window.location.search).get("next");
+    window.location.href = next ? `/login?next=${encodeURIComponent(next)}` : d.landing ?? "/";
   };
   const officialSubmit = () =>
     run(async () => {

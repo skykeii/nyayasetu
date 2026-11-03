@@ -1,6 +1,7 @@
 import { withApi } from "@/lib/api";
 import { getDb } from "@/lib/store";
-import { decorate, forbidden, json, viewerFrom, visibleIds } from "@/lib/server";
+import { decorate, forbidden, json, studentsOnProfile, viewerFrom, visibleIds } from "@/lib/server";
+import { summaryView } from "@/lib/student";
 import { detectOverlaps } from "@/lib/overlap";
 import { BUREAUS, CATEGORIES } from "@/lib/types";
 import { riskFor } from "@/lib/risk";
@@ -41,6 +42,10 @@ async function handleGET(req: Request, { params }: { params: { id: string } }) {
     byBureau,
     byCategory,
     timeline,
+    // masked and read-only; bureau officers see these only while their unit has an open case here
+    studentComplaints: studentsOnProfile(db, v, inst.id)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((s) => summaryView(db, s)),
   });
 }
 

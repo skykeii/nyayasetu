@@ -11,16 +11,36 @@ import { addDays } from "@/lib/util";
 export const dynamic = "force-dynamic";
 
 const Note = z.string({ error: "Describe the work done in at least 10 characters" }).trim().min(10, "Describe the work done in at least 10 characters").max(2000);
+const Progress = z.string({ error: "Write a progress note of at least 5 characters" }).trim().min(5, "Write a progress note of at least 5 characters").max(2000);
+const Kind = z.enum(["proof", "note"]).catch("proof");
 
-/** College uploads proof of work; the case then waits for the student, never closes here. */
+/**
+ * kind=note: a progress note, with optional files, on any complaint not yet closed. It does not change the status.
+ * kind=proof: proof of work; the complaint then waits for the student, never closes here.
+ */
 export const POST = withApi<{ id: string }>(async (req, { params }) => {
   const db = getDb();
   const v = viewerFrom(req, db);
   if (v.role !== "college") throw new ApiError(403, "This desk is for college nodal officers");
   const c = db.studentComplaints.find((x) => x.id === params.id && x.institutionId === v.institutionId);
   if (!c) throw new ApiError(404, "Complaint not found");
-  if (c.status !== "With College") throw new ApiError(400, "This complaint is no longer with the college");
   const form = await parseForm(req);
+  const kind = Kind.parse(form.get("kind"));
+  if (kind === "note") {
+    if (c.status.startsWith("Closed")) throw new ApiError(400, "This complaint is closed");
+    const text = validate(Progress, form.get("note"));
+    const uploaded = await saveUploads(form.getAll("files"));
+    if (uploaded.error) throw new ApiError(400, uploaded.error);
+    const out = mutate((d) => {
+      const x = d.studentComplaints.find((y) => y.id === c.id)!;
+      const by = officerName(d, v);
+      x.actions.push({ at: new Date().toISOString(), type: "College progress note", by, remarks: text, docs: uploaded.docs.length ? uploaded.docs : undefined });
+      audit(d, { role: v.role, actor: by, action: "COLLEGE_NOTE", target: x.id, detail: `Progress note with ${uploaded.docs.length} file(s)` });
+      return collegeView(d, x);
+    });
+    return json({ complaint: out });
+  }
+  if (c.status !== "With College") throw new ApiError(400, "This complaint is no longer with the college");
   const note = validate(Note, form.get("note"));
   const { docs, error } = await saveUploads(form.getAll("files"));
   if (error) throw new ApiError(400, error);

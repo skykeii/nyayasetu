@@ -22,6 +22,8 @@ import {
   CornerDownLeft,
 } from "lucide-react";
 import { useApi, useRole } from "./role-provider";
+import { StudentComplaintList } from "./student-list";
+import type { StudentSummary } from "@/lib/student";
 import { Advisory, Badge, Button, Input, Label, Select, Skeleton, Textarea, cn } from "./ui";
 import { JourneyLine } from "./journey";
 import { OverlapBridge } from "./overlap-bridge";
@@ -42,6 +44,7 @@ interface Detail {
   permissions: { remark: boolean; act: boolean; accept: boolean; escalate: boolean; returnToBureau: boolean; transfer: boolean; dispose: boolean; link: boolean };
   history: { id: string; bureau: string; status: string; category: string; dateReceived: string; subject: string }[];
   routing?: RoutingSuggestion;
+  studentComplaints: StudentSummary[];
 }
 
 const ICON: Record<CaseAction["type"], React.ComponentType<{ className?: string }>> = {
@@ -178,6 +181,7 @@ function RoutingCard({ caseId, bureau, routing, onDone }: { caseId: string; bure
 }
 
 function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
+  const { role } = useRole();
   const { data, error, loading, reload } = useApi<Detail>(`/api/cases/${id}`);
   if (error)
     return (
@@ -233,6 +237,7 @@ function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
           <JourneyLine journey={c.journey} sla={c.sla} size="lg" />
         </section>
         {data.related.length > 0 && <OverlapCallout data={data} onDone={reload} />}
+        <StudentComplaintList plain items={data.studentComplaints} title="Linked student-portal complaints" sub="Flagged by the overlap engine against this case, or registered as it. Pseudonyms only, read-only. Advisory." />
 
         <section className="grid grid-cols-2 gap-x-6 gap-y-4 rounded-2xl border border-[#EADFCD] bg-[#FBF6EC] p-4 sm:grid-cols-3">
           <Fact k="Date received" v={fmtDate(c.dateReceived)} />
@@ -288,9 +293,13 @@ function DrawerBody({ id, onClose }: { id: string; onClose: () => void }) {
           {c.studentComplaintId && (
             <div className="mt-2 text-[13.5px] text-slate-400">
               Escalated from student complaint{" "}
-              <Link href={`/grievances?open=${c.studentComplaintId}`} className="num text-saffron hover:underline">
-                {c.studentComplaintId}
-              </Link>
+              {role === "ca" ? (
+                <Link href={`/grievances?complaint=${c.studentComplaintId}`} className="num text-saffron hover:underline">
+                  {c.studentComplaintId}
+                </Link>
+              ) : (
+                <span className="num text-slate-200">{c.studentComplaintId}</span>
+              )}
               . Identity is masked; only the Competent Authority can reveal it.
             </div>
           )}

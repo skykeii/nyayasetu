@@ -45,7 +45,7 @@ export const useRole = () => {
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(path, { ...init, cache: "no-store" });
   const data = await res.json().catch(() => ({}));
-  if (res.status === 401 && !path.startsWith("/api/auth/")) window.location.href = "/login";
+  if (res.status === 401 && !path.startsWith("/api/auth/")) window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
   if (!res.ok) throw Object.assign(new Error((data as { error?: string }).error ?? `Request failed (${res.status})`), { status: res.status, data });
   return data as T;
 }
@@ -78,39 +78,62 @@ export function RoleProvider({ children, onToast }: { children: React.ReactNode;
   return <RoleCtx.Provider value={value}>{children}</RoleCtx.Provider>;
 }
 
-/** Fetch JSON; optional polling. Keeps previous data while refreshing. */
+/** Calls fn every `interval` ms while the tab is visible, and at once when the tab or window comes back. */
+export function usePoll(fn: () => void, interval?: number) {
+  const ref = React.useRef(fn);
+  ref.current = fn;
+  React.useEffect(() => {
+    if (!interval) return;
+    const id = setInterval(() => document.visibilityState === "visible" && ref.current(), interval);
+    const back = () => document.visibilityState === "visible" && ref.current();
+    window.addEventListener("focus", back);
+    document.addEventListener("visibilitychange", back);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("focus", back);
+      document.removeEventListener("visibilitychange", back);
+    };
+  }, [interval]);
+}
+
+/** Fetch JSON (never cached); optional polling. Keeps previous data while refreshing. */
 export function useApi<T>(path: string | null, opts: { interval?: number } = {}) {
   const { api, tick } = useRole();
   const [data, setData] = React.useState<T | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [updatedAt, setUpdatedAt] = React.useState<number | null>(null);
   const [n, setN] = React.useState(0);
   const lastKey = React.useRef<string>("");
+  const latest = React.useRef(0);
+
+  const run = React.useCallback(() => {
+    if (!path) return;
+    // a slow older response must not overwrite a newer one
+    const seq = ++latest.current;
+    api<T>(path)
+      .then((d) => {
+        if (seq !== latest.current) return;
+        setData(d);
+        setError(null);
+        setUpdatedAt(Date.now());
+      })
+      .catch((e: Error) => seq === latest.current && setError(e.message))
+      .finally(() => seq === latest.current && setLoading(false));
+  }, [api, path]);
 
   React.useEffect(() => {
     if (!path) return;
-    let alive = true;
     if (lastKey.current !== path) {
       setLoading(true);
       lastKey.current = path;
     }
-    const run = () =>
-      api<T>(path)
-        .then((d) => {
-          if (!alive) return;
-          setData(d);
-          setError(null);
-        })
-        .catch((e: Error) => alive && setError(e.message))
-        .finally(() => alive && setLoading(false));
     run();
-    const id = opts.interval ? setInterval(run, opts.interval) : undefined;
     return () => {
-      alive = false;
-      if (id) clearInterval(id);
+      latest.current++;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path, n, tick, opts.interval]);
+  }, [path, n, tick, run]);
+  usePoll(run, opts.interval);
 
-  return { data, error, loading: loading && !data, reload: () => setN((x) => x + 1) };
+  return { data, error, loading: loading && !data, updatedAt, reload: () => setN((x) => x + 1) };
 }

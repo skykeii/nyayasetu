@@ -25,7 +25,7 @@ export function verifyBotToken(token: unknown) {
   return !!m && Date.now() - Number(m[1]) < 5 * 60000;
 }
 
-export const complaintDocs = (s: StudentComplaint) => [...(s.photo ? [s.photo] : []), ...s.rounds.flatMap((r) => r.proof?.docs ?? [])];
+export const complaintDocs = (s: StudentComplaint) => [...(s.photo ? [s.photo] : []), ...s.rounds.flatMap((r) => r.proof?.docs ?? []), ...(s.proof?.docs ?? []), ...s.actions.flatMap((a) => a.docs ?? [])];
 
 // ---------- intake processing ----------
 export interface Processed {
@@ -87,7 +87,18 @@ export function urgencyFor(db: Db, s: StudentComplaint) {
   return s.aiCues?.length ? { ...u, reason: `${u.reason}; AI cues: ${s.aiCues.slice(0, 3).join(", ")}` } : u;
 }
 
-const isOpen = (x: StudentComplaint) => x.status === "With College" || x.status === "Resolved - Pending Verification" || x.status === "Escalated to AICTE";
+export const isOpen = (x: StudentComplaint) => x.status === "With College" || x.status === "Resolved - Pending Verification" || x.status === "Escalated to AICTE";
+
+/** The risk index's rules: one student counts at most 3 times per institution, and a complaint registered as an AICTE case counts as that case, not twice. */
+export function countOnce(list: StudentComplaint[]) {
+  const per = new Map<string, number>();
+  return list.filter((s) => {
+    const key = `${s.studentId}:${s.institutionId}`;
+    const n = (per.get(key) ?? 0) + 1;
+    per.set(key, n);
+    return n <= 3 && !s.caseId;
+  });
+}
 
 /** Best text similarity against this student's own open complaints. The student's own words are compared too, because AI rewords a translation differently each time. */
 export function nearestOwnOpen(db: Db, studentId: string, translation: string, original: string) {
@@ -418,6 +429,8 @@ export function collegeView(db: Db, s: StudentComplaint) {
     reopened: s.reopened,
     reminders: s.reminders,
     actions: s.actions.map((a) => ({ ...a, remarks: maskFor(s, a.remarks) })),
+    // the college's own proof from earlier rounds, for its timeline
+    roundDocs: s.rounds.map((r) => ({ round: r.round, docs: r.proof?.docs ?? [] })),
     urgency: urgencyFor(db, s),
   };
 }
@@ -441,3 +454,24 @@ export function deskView(db: Db, s: StudentComplaint, isCa: boolean) {
   };
 }
 export type DeskComplaint = ReturnType<typeof deskView>;
+
+/** Read-only, masked line for officers outside the grievance desk (institution profile, overlap panel). */
+export function summaryView(db: Db, s: StudentComplaint) {
+  const inst = db.institutions.find((i) => i.id === s.institutionId);
+  return {
+    id: s.id,
+    pseudonym: s.pseudonym,
+    institutionId: s.institutionId,
+    institution: inst?.name,
+    region: inst?.region,
+    category: s.category,
+    subject: maskFor(s, s.subject),
+    status: s.status,
+    severity: s.severity,
+    createdAt: s.createdAt,
+    dueAt: s.dueAt,
+    routedBureau: s.routedBureau,
+    caseId: s.caseId,
+  };
+}
+export type StudentSummary = ReturnType<typeof summaryView>;

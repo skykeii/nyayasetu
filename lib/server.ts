@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { journeyOf } from "./journey";
-import type { BureauCode, Case, Db } from "./types";
+import type { BureauCode, Case, Db, StudentComplaint } from "./types";
 import { BUREAUS } from "./types";
 import { ROLES, ROLE_KEYS, type Viewer } from "./roles";
 import { detectBursts, detectOverlaps, type OverlapCluster } from "./overlap";
@@ -50,6 +50,47 @@ export function visibleIds(db: Db, v: Viewer): Set<string> {
     if (cl.caseIds.some((id) => own.has(id))) cl.caseIds.forEach((id) => own.add(id));
   }
   return own;
+}
+
+// ---------------- student-portal complaints ----------------
+const unitBureaus = (v: Viewer) => (ROLES[v.role].bureaus === "all" ? [] : (ROLES[v.role].bureaus as BureauCode[]));
+const regionOf = (db: Db, institutionId: string) => db.institutions.find((i) => i.id === institutionId)?.region;
+
+/** Student complaints in this viewer's lists and counts. Bureau officers get none here; they see them only on profiles and overlap panels. */
+export function studentsInScope(db: Db, v: Viewer): StudentComplaint[] {
+  switch (v.role) {
+    case "ca":
+      return db.studentComplaints;
+    case "ro":
+      return db.studentComplaints.filter((s) => regionOf(db, s.institutionId) === v.region);
+    case "college":
+      return db.studentComplaints.filter((s) => s.institutionId === v.institutionId);
+    case "student":
+      return db.studentComplaints.filter((s) => s.studentId === v.studentId);
+    default:
+      return [];
+  }
+}
+
+/** A bureau officer sees an institution's student complaints only while their unit has an open case there. */
+export function studentsOnProfile(db: Db, v: Viewer, institutionId: string): StudentComplaint[] {
+  if (v.role === "ca" || v.role === "ro") return studentsInScope(db, v).filter((s) => s.institutionId === institutionId);
+  const bureaus = unitBureaus(v);
+  const active = bureaus.length > 0 && db.cases.some((c) => c.institutionId === institutionId && c.status !== "Disposed" && bureaus.includes(c.bureau));
+  return active ? db.studentComplaints.filter((s) => s.institutionId === institutionId) : [];
+}
+
+/** Student complaints the overlap engine flagged against a case the viewer can already see. */
+export function studentsFlaggedOn(db: Db, v: Viewer, caseId: string): StudentComplaint[] {
+  if (v.role === "college" || v.role === "student") return [];
+  return db.studentComplaints.filter((s) => s.overlapFlags.some((f) => f.caseId === caseId) || s.caseId === caseId);
+}
+
+export function canSeeStudent(db: Db, v: Viewer, s: StudentComplaint, vis?: Set<string>) {
+  if (studentsInScope(db, v).includes(s) || studentsOnProfile(db, v, s.institutionId).includes(s)) return true;
+  if (v.role === "college" || v.role === "student") return false;
+  const visible = vis ?? visibleIds(db, v);
+  return s.overlapFlags.some((f) => visible.has(f.caseId)) || (!!s.caseId && visible.has(s.caseId));
 }
 
 export function isOwnCase(v: Viewer, c: Case) {
@@ -115,25 +156,41 @@ export interface Alert {
   read: boolean;
 }
 
+const EVENT_DAYS = 30;
+const VERDICT = /^Student (confirmed|responded)/;
+
+/** Student-portal notifications. Every one links to that complaint. */
 function studentAlerts(db: Db, v: Viewer): Alert[] {
+  if (v.role !== "college" && v.role !== "ca") return [];
   const reads = new Set(db.alertReads[v.role] ?? []);
-  const def = ROLES[v.role];
   const instName = (id: string) => db.institutions.find((i) => i.id === id)?.name ?? id;
-  const regionIds = v.role === "ro" ? new Set(db.institutions.filter((i) => i.region === v.region).map((i) => i.id)) : null;
+  const recent = (at: string) => Date.now() - new Date(at).getTime() < EVENT_DAYS * DAY;
   const out: Alert[] = [];
-  for (const s of db.studentComplaints) {
+  const push = (a: Omit<Alert, "read" | "type" | "caseIds"> & { caseIds?: string[] }) => out.push({ type: "student", caseIds: [], read: reads.has(a.id), ...a });
+  for (const s of studentsInScope(db, v)) {
     if (v.role === "college") {
+      const href = `/college?complaint=${s.id}`;
       const last = s.reminders.at(-1);
-      if (s.institutionId !== v.institutionId || s.status !== "With College" || !last) continue;
-      const u = urgencyOf({ severity: s.severity, createdAt: s.createdAt, dueAt: s.dueAt, similar: 0 });
-      const id = `col:${s.id}:${s.reminders.length}`;
-      out.push({ id, type: "student", severity: s.escalationLevel > 0 ? "critical" : u.label === "Critical" ? "high" : "medium", title: s.escalationLevel > 0 ? "Overdue: escalated to the Principal" : `Reminder: ${s.subject}`, message: `${s.id} · ${s.pseudonym} · ${last.message}`, caseIds: [], institutionId: s.institutionId, at: last.at, href: `/college?open=${s.id}`, read: reads.has(id) });
-    } else if (s.status === "Escalated to AICTE") {
-      const inScope = regionIds ? regionIds.has(s.institutionId) : def.bureaus === "all" || def.bureaus.includes(s.routedBureau);
-      if (!inScope) continue;
-      const id = `stu:${s.id}`;
-      out.push({ id, type: "student", severity: s.criticalFlag ? "critical" : s.reopened ? "high" : "medium", title: s.criticalFlag ? "Critical: two Not done verdicts from the student" : s.reopened ? "Student marked Not done: reopened to AICTE" : "Student complaint overdue at college: escalated to AICTE", message: `${s.id} · ${s.pseudonym} · ${s.category} · ${instName(s.institutionId)}`, caseIds: s.caseId ? [s.caseId] : [], institutionId: s.institutionId, at: s.actions.at(-1)?.at ?? s.createdAt, href: `/grievances?open=${s.id}`, read: reads.has(id) });
+      if (s.status === "With College" && last) {
+        const u = urgencyOf({ severity: s.severity, createdAt: s.createdAt, dueAt: s.dueAt, similar: 0 });
+        push({ id: `col:${s.id}:${s.reminders.length}`, severity: s.escalationLevel > 0 ? "critical" : u.label === "Critical" ? "high" : "medium", title: s.reminders.length <= 2 ? `New student complaint: ${s.subject}` : s.escalationLevel > 0 ? "Overdue: escalated to the Principal" : `Reminder: ${s.subject}`, message: `${s.id} · ${s.pseudonym} · ${last.message}`, institutionId: s.institutionId, at: last.at, href });
+      }
+      s.actions.forEach((a, i) => {
+        if (!recent(a.at)) return;
+        if (VERDICT.test(a.type)) push({ id: `colv:${s.id}:${i}`, severity: a.type.includes("Not done") ? "high" : "info", title: a.type, message: `${s.id} · ${s.pseudonym} · ${a.remarks}`, institutionId: s.institutionId, at: a.at, href });
+        else if (a.type.startsWith("AICTE returned")) push({ id: `colr:${s.id}:${i}`, severity: "high", title: `${a.type}: new proof needed`, message: `${s.id} · ${a.remarks}`, institutionId: s.institutionId, at: a.at, href });
+      });
+      continue;
     }
+    const href = `/grievances?complaint=${s.id}`;
+    const message = `${s.id} · ${s.pseudonym} · ${s.category} · ${instName(s.institutionId)}`;
+    if (recent(s.createdAt) && s.round === 1 && s.status === "With College") push({ id: `new:${s.id}`, severity: s.severity === "Critical" ? "high" : "info", title: "New student-portal complaint", message, institutionId: s.institutionId, at: s.createdAt, href });
+    if (s.status === "Escalated to AICTE")
+      push({ id: `stu:${s.id}`, severity: s.criticalFlag ? "critical" : s.reopened ? "high" : "medium", title: s.criticalFlag ? "Critical: two Not done verdicts from the student" : s.reopened ? "Student marked Not done: reopened to AICTE" : "Student complaint overdue at college: escalated to AICTE", message, caseIds: s.caseId ? [s.caseId] : [], institutionId: s.institutionId, at: s.actions.at(-1)?.at ?? s.createdAt, href });
+    // a verdict on a round AICTE sent back is AICTE's business too
+    s.actions.forEach((a, i) => {
+      if (recent(a.at) && s.round > 1 && a.type.startsWith("Student confirmed")) push({ id: `cav:${s.id}:${i}`, severity: "info", title: `${a.type} after the AICTE return`, message, institutionId: s.institutionId, at: a.at, href });
+    });
   }
   return out;
 }

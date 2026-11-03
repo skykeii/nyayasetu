@@ -1,21 +1,14 @@
 import { z } from "zod";
 import { ApiError, parseJson, parseQuery, withApi } from "@/lib/api";
 import { audit, getDb, mutate } from "@/lib/store";
-import { json, officerName, viewerFrom } from "@/lib/server";
+import { json, officerName, studentsInScope, viewerFrom } from "@/lib/server";
 import { deskView, escalateToAicte, returnToCollege, sweepStudentLayer } from "@/lib/student";
-import { ROLES, type Viewer } from "@/lib/roles";
 import { decryptField } from "@/lib/vault";
-import type { Db, StudentComplaint } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-function inScope(db: Db, v: Viewer, s: StudentComplaint) {
-  const def = ROLES[v.role];
-  if (v.role === "ro") return db.institutions.find((i) => i.id === s.institutionId)?.region === v.region;
-  return def.bureaus === "all" || def.bureaus.includes(s.routedBureau);
-}
-
-const Query = z.object({ q: z.string().max(120).optional(), filter: z.enum(["", "escalated", "flagged", "unverified", "college", "overlap", "critical"]).optional() });
+// the grievance desk is the Competent Authority's; other units see student complaints only on profiles and overlap panels
+const Query = z.object({ q: z.string().max(120).optional(), filter: z.enum(["", "escalated", "flagged", "unverified", "college", "awaiting", "closed", "overlap", "critical"]).optional() });
 const Body = z.object({
   action: z.enum(["reveal", "register", "return", "ack-deletion"]),
   id: z.string().max(40),
@@ -27,10 +20,11 @@ export const GET = withApi(async (req) => {
   sweepStudentLayer();
   const db = getDb();
   const v = viewerFrom(req, db);
-  const isCa = v.role === "ca";
+  if (v.role !== "ca") throw new ApiError(403, "The student grievance desk is for the Competent Authority");
+  const isCa = true;
   const { q: rawQ, filter } = parseQuery(req, Query);
   const q = (rawQ ?? "").toLowerCase().trim();
-  const scoped = db.studentComplaints.filter((s) => inScope(db, v, s));
+  const scoped = studentsInScope(db, v);
   const items = scoped
     .filter((s) => {
       switch (filter) {
@@ -41,7 +35,11 @@ export const GET = withApi(async (req) => {
         case "unverified":
           return s.status === "Closed - Unverified";
         case "college":
-          return s.status === "With College" || s.status === "Resolved - Pending Verification";
+          return s.status === "With College";
+        case "awaiting":
+          return s.status === "Resolved - Pending Verification";
+        case "closed":
+          return s.status.startsWith("Closed");
         case "critical":
           return !!s.criticalFlag;
         case "overlap":
@@ -57,7 +55,7 @@ export const GET = withApi(async (req) => {
   return json({
     items,
     canReveal: isCa,
-    canAct: ROLES[v.role].can.act,
+    canAct: true,
     deletionRequests: isCa ? db.deletionRequests.map(({ studentId, ...r }) => r) : [],
     stats: {
       total: scoped.length,
@@ -65,6 +63,7 @@ export const GET = withApi(async (req) => {
       pending: scoped.filter((s) => s.status === "Resolved - Pending Verification").length,
       escalated: scoped.filter((s) => s.status === "Escalated to AICTE").length,
       verified: scoped.filter((s) => s.status === "Closed - Verified").length,
+      closed: scoped.filter((s) => s.status.startsWith("Closed")).length,
       unverified: scoped.filter((s) => s.status === "Closed - Unverified").length,
       flagged: scoped.filter((s) => s.suspicious.length).length,
       critical: scoped.filter((s) => s.criticalFlag).length,
@@ -76,6 +75,7 @@ export const GET = withApi(async (req) => {
 export const POST = withApi(async (req) => {
   const db = getDb();
   const v = viewerFrom(req, db);
+  if (v.role !== "ca") throw new ApiError(403, "The student grievance desk is for the Competent Authority");
   const body = await parseJson(req, Body);
 
   if (body.action === "ack-deletion") {
@@ -90,7 +90,7 @@ export const POST = withApi(async (req) => {
   }
 
   const s = db.studentComplaints.find((x) => x.id === body.id);
-  if (!s || !inScope(db, v, s)) throw new ApiError(404, "Complaint not found in your scope");
+  if (!s) throw new ApiError(404, "Complaint not found");
   const reason = body.reason ?? "";
 
   if (body.action === "reveal") {
@@ -101,7 +101,6 @@ export const POST = withApi(async (req) => {
     return json({ identity: { name: decryptField(student.name), mobile: decryptField(student.mobile), rollNo: decryptField(student.rollNo), apaarId: student.apaarId } });
   }
 
-  if (!ROLES[v.role].can.act) throw new ApiError(403, "Your role cannot act on this complaint");
   if (s.status !== "Escalated to AICTE") throw new ApiError(400, "Only complaints escalated to AICTE can be handled here");
 
   if (body.action === "register") {

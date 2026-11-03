@@ -3,7 +3,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useApi, useRole } from "@/components/role-provider";
 import { Badge, Card, CardHeader, Skeleton, cn } from "@/components/ui";
-import { BureauChip, Confidence, CountUp, ErrorNote, SeverityDot } from "@/components/bits";
+import { BureauChip, Confidence, CountUp, ErrorNote, SeverityDot, Updated } from "@/components/bits";
 import { BarsChart, LinesChart } from "@/components/charts";
 import { MapLegend, OverlapBridge } from "@/components/overlap-bridge";
 import { ConnectionMap, type Connection } from "@/components/connection-map";
@@ -14,6 +14,7 @@ import { fmtDateTime } from "@/lib/util";
 
 interface Dash {
   kpi: Record<string, number>;
+  studentPortal: { total: number; withCollege: number; awaiting: number; escalated: number; closed: number; newThisWeek: number } | null;
   bureauWorkload: Record<string, number | string>[];
   institutionStatus: Record<string, number | string>[];
   trend: { month: string; received: number; disposed: number }[];
@@ -37,7 +38,7 @@ const TITLES: Record<string, string> = {
 
 export default function CommandCenter() {
   const { role } = useRole();
-  const { data, error, loading } = useApi<Dash>("/api/dashboard", { interval: 5000 });
+  const { data, error, loading, updatedAt } = useApi<Dash>("/api/dashboard", { interval: 5000 });
   const [open, setOpen] = React.useState<string | null>(null);
   const { data: map } = useApi<{ states: AreaRow[] }>("/api/heatmap", { interval: 30000 });
   const [metric, setMetric] = React.useState<Metric>("density");
@@ -54,6 +55,8 @@ export default function CommandCenter() {
     { label: "Pending beyond timeline", value: k?.beyondTimeline, href: "/cases?status=overdue", tone: "text-red-300", hint: k ? `${k.dueSoon} due within the warning window` : undefined },
     { label: "Open overlaps", value: k?.overlapsOpen, href: "/overlaps", tone: "text-violet-300", hint: k ? `${k.duplicatesOpen} possible duplicates` : undefined },
   ];
+  const sp = data?.studentPortal;
+  if (sp) tiles.push({ label: "Student-portal complaints", value: sp.total, href: role === "ca" ? "/grievances" : "/heatmap", tone: "text-sky-200", hint: `${sp.withCollege} with colleges · ${sp.escalated} escalated · ${sp.newThisWeek} new this week` });
 
   return (
     <div className="mx-auto max-w-[1480px] space-y-5">
@@ -67,11 +70,11 @@ export default function CommandCenter() {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
           </span>
-          Live, refreshes every 5 s{data ? ` · ${new Date(data.generatedAt).toLocaleTimeString("en-IN")}` : ""}
+          Live, refreshes every 5 s <Updated at={updatedAt} />
         </div>
       </div>
 
-      <Card className="grid grid-cols-2 divide-white/[0.06] overflow-hidden sm:grid-cols-4 xl:grid-cols-8 [&>*]:border-white/[0.06]">
+      <Card className={cn("grid grid-cols-2 divide-white/[0.06] overflow-hidden sm:grid-cols-4 [&>*]:border-white/[0.06]", tiles.length > 8 ? "sm:grid-cols-3 xl:grid-cols-9" : "xl:grid-cols-8")}>
         {tiles.map((t, i) => (
           <Link key={t.label} href={t.href} className={cn("group border-b px-4 py-4 transition-colors hover:bg-white/[0.03] xl:border-b-0", i % 4 !== 3 && "sm:border-r", "xl:border-r last:border-r-0")}>
             <div className="text-[13.5px] text-slate-400 group-hover:text-slate-200">{t.label}</div>

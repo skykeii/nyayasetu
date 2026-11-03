@@ -5,6 +5,8 @@ import { SESSION_COOKIE, VIEWER_HEADER, readSession } from "@/lib/session";
 const PUBLIC_PAGES = ["/login", "/security"];
 const PUBLIC_API = ["/api/auth/login", "/api/auth/student"];
 const hasPrefix = (path: string, p: string) => path === p || path.startsWith(`${p}/`);
+// only same-site paths, never "//host" or a full URL
+const safeNext = (n: string | null) => (n && /^\/(?![/\\])/.test(n) ? n : null);
 
 /** The server derives identity only from the signed cookie. Any client-sent identity header is dropped here. */
 export async function middleware(req: NextRequest) {
@@ -33,7 +35,9 @@ export async function middleware(req: NextRequest) {
   if (!session) {
     if (isApi ? PUBLIC_API.some((p) => hasPrefix(pathname, p)) : PUBLIC_PAGES.some((p) => hasPrefix(pathname, p))) return NextResponse.next({ request: { headers } });
     if (isApi) return NextResponse.json({ error: "Please sign in" }, { status: 401 });
-    return NextResponse.redirect(new URL("/login", req.url));
+    const login = new URL("/login", req.url);
+    if (pathname !== "/") login.searchParams.set("next", pathname + req.nextUrl.search);
+    return NextResponse.redirect(login);
   }
 
   const def = ROLES[session.role];
@@ -41,7 +45,8 @@ export async function middleware(req: NextRequest) {
   if (isApi) {
     if (!canCallApi(session.role, pathname)) return NextResponse.json({ error: "Not permitted for your role" }, { status: 403 });
   } else if (pathname === "/login") {
-    return NextResponse.redirect(new URL(def.landing, req.url));
+    const next = safeNext(req.nextUrl.searchParams.get("next"));
+    return NextResponse.redirect(new URL(next && canOpenPage(session.role, next.split("?")[0]) ? next : def.landing, req.url));
   } else if (!PUBLIC_PAGES.some((p) => hasPrefix(pathname, p)) && !canOpenPage(session.role, pathname)) {
     return NextResponse.redirect(new URL(def.landing, req.url));
   }

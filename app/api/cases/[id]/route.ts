@@ -1,10 +1,10 @@
 import { withApi } from "@/lib/api";
 import { audit, getDb, touch } from "@/lib/store";
-import { decorate, forbidden, isOwnCase, json, officerName, viewerFrom, visibleIds } from "@/lib/server";
+import { decorate, forbidden, isOwnCase, json, officerName, studentsFlaggedOn, viewerFrom, visibleIds } from "@/lib/server";
 import { detectOverlaps } from "@/lib/overlap";
 import { resolveInstitution } from "@/lib/resolve";
 import { ROLES } from "@/lib/roles";
-import { suggestRouting } from "@/lib/student";
+import { suggestRouting, summaryView } from "@/lib/student";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +51,8 @@ async function handleGET(req: Request, { params }: { params: { id: string } }) {
     group,
     resolution,
     permissions,
+    // masked, read-only: student complaints the overlap engine flagged against this case
+    studentComplaints: studentsFlaggedOn(db, v, c.id).map((s) => summaryView(db, s)),
     routing: c.status === "New" && own ? suggestRouting(db, c.category, c.institutionId) : undefined,
     history: db.cases
       .filter((x) => x.institutionId === c.institutionId && x.id !== c.id && vis.has(x.id))

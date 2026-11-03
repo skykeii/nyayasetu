@@ -17,7 +17,7 @@ export const GET = withApi(async (req) => {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .map((c) => studentView(db, c));
   const notifications = complaints
-    .flatMap((c) => c.actions.filter((a) => a.by !== s.pseudonym).map((a) => ({ at: a.at, title: a.type, complaintId: c.id, subject: c.subject })))
+    .flatMap((c) => c.actions.filter((a) => a.by !== s.pseudonym).map((a) => ({ at: a.at, title: a.type, complaintId: c.id, subject: c.subject, href: `/student?complaint=${c.id}` })))
     .sort((a, b) => b.at.localeCompare(a.at))
     .slice(0, 12);
   return json({

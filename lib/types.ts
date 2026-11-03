@@ -236,6 +236,7 @@ export interface StudentAction {
   type: string;
   by: string;
   remarks: string;
+  docs?: DocRef[]; // files attached to a college progress note
 }
 
 export interface CollegeReminder {

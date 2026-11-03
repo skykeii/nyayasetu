@@ -16,8 +16,8 @@ export interface RoleDef {
   api: string[] | "all"; // API prefixes the role may call, enforced in middleware.ts
 }
 
-const OFFICER_NAV = ["/desk", "/cases", "/intake", "/institutions", "/overlaps", "/heatmap", "/grievances", "/alerts", "/reports"];
-const OFFICER_API = ["/api/alerts", "/api/cases", "/api/dashboard", "/api/files", "/api/grievances", "/api/heatmap", "/api/institutions", "/api/intake", "/api/overlaps", "/api/reports", "/api/simulate", "/api/ai"];
+const OFFICER_NAV = ["/desk", "/cases", "/intake", "/institutions", "/overlaps", "/heatmap", "/alerts", "/reports"];
+const OFFICER_API = ["/api/alerts", "/api/cases", "/api/dashboard", "/api/files", "/api/heatmap", "/api/institutions", "/api/intake", "/api/overlaps", "/api/reports", "/api/simulate", "/api/ai"];
 
 export const ROLES: Record<RoleKey, RoleDef> = {
   ca: {
@@ -84,7 +84,7 @@ export const ROLES: Record<RoleKey, RoleDef> = {
     regional: true,
     defaultOfficer: "RO-S",
     can: { act: false, link: false, settings: false, audit: false, simulate: false },
-    nav: ["/", "/heatmap", "/cases", "/institutions", "/overlaps", "/grievances", "/alerts", "/reports"],
+    nav: ["/", "/heatmap", "/cases", "/institutions", "/overlaps", "/alerts", "/reports"],
     landing: "/",
     accent: "#823D66",
     badge: "Regional Officer",

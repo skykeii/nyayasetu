@@ -4,6 +4,23 @@ import { animate, useInView, useReducedMotion } from "framer-motion";
 import { Badge, cn } from "./ui";
 import type { Severity, Status } from "@/lib/types";
 
+/** "Updated just now" for pages that refresh themselves. */
+export function Updated({ at, className }: { at: number | null; className?: string }) {
+  const [, tick] = React.useState(0);
+  React.useEffect(() => {
+    const id = setInterval(() => tick((x) => x + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (!at) return null;
+  const s = Math.max(0, Math.round((Date.now() - at) / 1000));
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 text-[12.5px] text-slate-500", className)}>
+      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+      Updated {s < 5 ? "just now" : s < 60 ? `${s} s ago` : `${Math.floor(s / 60)} min ago`}
+    </span>
+  );
+}
+
 export function CountUp({ value, className, suffix = "" }: { value: number; className?: string; suffix?: string }) {
   const ref = React.useRef<HTMLSpanElement>(null);
   const prev = React.useRef(0);

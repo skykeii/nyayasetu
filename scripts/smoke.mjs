@@ -67,7 +67,7 @@ ok("lockout after 5 failures", locked.status === 401);
 const none = client();
 ok("no session: API 401", (await none.get("/api/cases")).status === 401);
 const page = await none.get("/cases");
-ok("no session: page redirects to /login", page.status === 307 && page.location?.endsWith("/login"));
+ok("no session: page redirects to /login, keeping the page asked for", page.status === 307 && page.location?.endsWith("/login?next=%2Fcases"), page.location);
 ok("forged x-role ignored with no session", (await none.get("/api/audit", { "x-role": "ca" })).status === 401);
 ok("forged _role query ignored", (await none.get("/api/audit?_role=ca")).status === 401);
 const forged = await s.rb.get("/api/audit", { "x-role": "ca", "x-officer": "CA-1" });

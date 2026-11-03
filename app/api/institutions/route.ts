@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { parseQuery, withApi } from "@/lib/api";
 import { getDb } from "@/lib/store";
-import { json, slaInfo, viewerFrom, visibleIds } from "@/lib/server";
+import { json, slaInfo, studentsInScope, viewerFrom, visibleIds } from "@/lib/server";
+import { countOnce } from "@/lib/student";
 import { detectOverlaps } from "@/lib/overlap";
 import { riskFor } from "@/lib/risk";
 
@@ -15,6 +16,7 @@ async function handleGET(req: Request) {
   const q = (query.q ?? "").toLowerCase().trim();
   const region = query.region ?? "";
   const { clusters } = detectOverlaps(db);
+  const students = countOnce(studentsInScope(db, v));
   let insts = db.institutions;
   if (v.role === "ro") insts = insts.filter((i) => i.region === v.region);
   if (region) insts = insts.filter((i) => i.region === region);
@@ -24,16 +26,19 @@ async function handleGET(req: Request) {
       const cs = db.cases.filter((c) => c.institutionId === i.id && vis.has(c.id));
       const open = cs.filter((c) => c.status !== "Disposed");
       const risk = riskFor(db, i.id)!;
+      const stu = students.filter((s) => s.institutionId === i.id);
+      const stuOpen = stu.filter((s) => !s.status.startsWith("Closed")).length;
       return {
         ...i,
         risk: { score: risk.score, confidence: risk.confidence, band: risk.band },
-        total: cs.length,
-        open: open.length,
-        disposed: cs.length - open.length,
+        total: cs.length + stu.length,
+        open: open.length + stuOpen,
+        disposed: cs.length - open.length + stu.length - stuOpen,
+        students: stu.length,
         overdue: open.filter((c) => slaInfo(db, c).state === "breached").length,
         bureaus: [...new Set(open.map((c) => c.bureau))],
         overlaps: clusters.filter((cl) => cl.institutionId === i.id && cl.status === "Open" && cl.caseIds.some((x) => vis.has(x))).length,
-        lastComplaint: cs.map((c) => c.dateReceived).sort().at(-1),
+        lastComplaint: [...cs.map((c) => c.dateReceived), ...stu.map((s) => s.createdAt)].sort().at(-1),
       };
     })
     .sort((a, b) => b.overlaps - a.overlaps || b.open - a.open || b.total - a.total);

@@ -3,7 +3,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useApi, useRole } from "@/components/role-provider";
 import { Badge, Card, CardHeader, Skeleton, cn } from "@/components/ui";
-import { BureauChip, Confidence, CountUp, ErrorNote, SeverityDot } from "@/components/bits";
+import { BureauChip, Confidence, CountUp, ErrorNote, SeverityDot, Updated } from "@/components/bits";
 import { CaseDrawer } from "@/components/case-drawer";
 import { OverlapBridge } from "@/components/overlap-bridge";
 import type { Severity } from "@/lib/types";
@@ -51,14 +51,16 @@ function Queue({ rows, onOpen, empty }: { rows?: Row[]; onOpen: (id: string) => 
 
 export default function MyDesk() {
   const { meta } = useRole();
-  const { data, error } = useApi<Desk>("/api/dashboard", { interval: 5000 });
+  const { data, error, updatedAt } = useApi<Desk>("/api/dashboard", { interval: 5000 });
   const [open, setOpen] = React.useState<string | null>(null);
   if (error) return <ErrorNote msg={error} />;
   const k = data?.kpi;
   return (
     <div className="mx-auto max-w-[1280px] space-y-5">
       <div>
-        <h1 className="text-[34px] leading-[1.1] tracking-tight text-white">My desk</h1>
+        <h1 className="flex flex-wrap items-baseline gap-x-3 text-[34px] leading-[1.1] tracking-tight text-white">
+          My desk <Updated at={updatedAt} />
+        </h1>
         <p className="text-[14.5px] text-slate-400">
           {meta.viewer.officerName}, {meta.viewer.designation} · {data?.scope ?? ""}
         </p>

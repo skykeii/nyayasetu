@@ -11,7 +11,8 @@ import { addDays, iso } from "./util";
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_FILE = path.join(DATA_DIR, "db.json");
 export const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
-const CACHE_MS = 3000;
+// how long a copy is trusted before re-checking the row version; other servers' changes show within this
+const CACHE_MS = 1000;
 const DB_TIMEOUT = 25000;
 const WRITE_BUDGET_MS = 12000;
 const BACKGROUND_BUDGET_MS = 15000;
@@ -104,7 +105,7 @@ function adopt(row: { db: Db; rowVersion: number }) {
 /** Runs one request, tracking the changes it makes. */
 export const runWithStore = <T>(fn: () => Promise<T>) => requestScope.run({ pending: [] }, fn);
 
-/** Makes state available before a route runs. With Supabase, re-checks the version at most every ~3 s. */
+/** Makes state available before a route runs. With Supabase, re-checks the version at most every second. */
 export async function hydrate() {
   if (!supabaseClient()) return;
   // requests arriving together share one check

@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { CornerDownLeft, Eye, FilePlus2, ShieldAlert, Siren } from "lucide-react";
 import { useApi, useRole } from "@/components/role-provider";
 import { Advisory, Badge, Button, Card, CardHeader, Input, Label, Skeleton, Tabs, Textarea, cn } from "@/components/ui";
-import { BureauChip, CountUp, ErrorNote } from "@/components/bits";
+import { BureauChip, CountUp, ErrorNote, Updated } from "@/components/bits";
+import { DocLink } from "@/components/upload";
 import { CaseDrawer } from "@/components/case-drawer";
 import type { DeskComplaint } from "@/lib/student";
 import type { StudentStatus } from "@/lib/types";
@@ -96,11 +97,19 @@ export default function GrievancesPageWrap() {
 function GrievancesPage() {
   const { api, toast, bump, role } = useRole();
   const params = useSearchParams();
-  const [filter, setFilter] = React.useState("escalated");
-  const [q, setQ] = React.useState(params.get("open") ?? "");
-  const [open, setOpen] = React.useState<string | null>(params.get("open"));
+  // a deep link (?complaint=SC-...) from the bell or a profile opens that complaint
+  const linked = params.get("complaint") ?? params.get("open");
+  const [filter, setFilter] = React.useState(linked ? "" : "escalated");
+  const [q, setQ] = React.useState(linked ?? "");
+  const [open, setOpen] = React.useState<string | null>(linked);
   const [caseId, setCaseId] = React.useState<string | null>(null);
-  const { data, error, loading, reload } = useApi<Desk>(`/api/grievances?filter=${params.get("open") ? "" : filter}&q=${encodeURIComponent(q)}`, { interval: 5000 });
+  React.useEffect(() => {
+    if (!linked) return;
+    setFilter("");
+    setQ(linked);
+    setOpen(linked);
+  }, [linked]);
+  const { data, error, loading, reload, updatedAt } = useApi<Desk>(`/api/grievances?filter=${filter}&q=${encodeURIComponent(q)}`, { interval: 5000 });
   if (error) return <ErrorNote msg={error} />;
   const s = data?.stats;
   const register = async (id: string) => {
@@ -125,17 +134,19 @@ function GrievancesPage() {
   return (
     <div className="mx-auto max-w-[1280px] space-y-4">
       <div>
-        <h1 className="text-[34px] leading-[1.1] tracking-tight text-white">Student grievances</h1>
+        <h1 className="flex flex-wrap items-baseline gap-x-3 text-[34px] leading-[1.1] tracking-tight text-white">
+          Student grievances <Updated at={updatedAt} />
+        </h1>
         <p className="text-[14.5px] text-slate-400">Complaints from the student portal. Escalations come here when a student marks a resolution Not done or a college misses its date. AICTE closes the case or returns it with directions.</p>
       </div>
       <Card className="grid grid-cols-2 overflow-hidden sm:grid-cols-3 xl:grid-cols-6">
         {[
           { l: "Total", v: s?.total, t: "text-white" },
           { l: "With colleges", v: s?.withCollege, t: "text-amber-200" },
+          { l: "Awaiting verdict", v: s?.pending, t: "text-sky-200" },
           { l: "Escalated to AICTE", v: s?.escalated, t: "text-orange-300" },
+          { l: "Closed", v: s?.closed, t: "text-emerald-300" },
           { l: "Critical (2 Not done)", v: s?.critical, t: "text-red-300" },
-          { l: "Closed, unverified", v: s?.unverified, t: "text-slate-300" },
-          { l: "Flagged", v: s?.flagged, t: "text-violet-300" },
         ].map((x) => (
           <div key={x.l} className="border-b border-r border-white/[0.06] px-4 py-3">
             <div className="text-[13.5px] text-slate-400">{x.l}</div>
@@ -169,10 +180,11 @@ function GrievancesPage() {
           value={filter}
           onChange={setFilter}
           items={[
-            { key: "escalated", label: "Escalated" },
+            { key: "college", label: `With college (${s?.withCollege ?? 0})` },
+            { key: "awaiting", label: `Awaiting verdict (${s?.pending ?? 0})` },
+            { key: "escalated", label: `Escalated (${s?.escalated ?? 0})` },
+            { key: "closed", label: `Closed (${s?.closed ?? 0})` },
             { key: "critical", label: "Critical" },
-            { key: "college", label: "With colleges" },
-            { key: "unverified", label: "Unverified closures" },
             { key: "flagged", label: "Flagged" },
             ...(isCa ? [{ key: "overlap", label: `Student complaints with possible overlap (${s?.overlap ?? 0})` }] : []),
             { key: "", label: "All" },
@@ -257,6 +269,13 @@ function GrievancesPage() {
                       </div>
                       {r.directions && <div className="text-orange-200">AICTE directions: {r.directions}</div>}
                       {r.proof?.note}
+                      {!!r.proof?.docs.length && (
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {r.proof.docs.map((d) => (
+                            <DocLink key={d.file ?? d.name} d={d} />
+                          ))}
+                        </div>
+                      )}
                       {r.reason && <div className="mt-1 text-red-200">Student&apos;s reason: {r.reason}</div>}
                       {r.evidence && (
                         <div className="mt-1 text-[13.5px] text-slate-400">
@@ -288,6 +307,11 @@ function GrievancesPage() {
                     {[...c.actions].reverse().map((a, i) => (
                       <li key={i}>
                         <span className="text-slate-200">{a.type}</span> · {fmtDateTime(a.at)} · {a.by} · {a.remarks}
+                        {a.docs?.map((d) => (
+                          <span key={d.file ?? d.name} className="ml-1.5 inline-block">
+                            <DocLink d={d} />
+                          </span>
+                        ))}
                       </li>
                     ))}
                   </ul>

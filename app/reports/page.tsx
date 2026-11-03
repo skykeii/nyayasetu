@@ -14,7 +14,7 @@ export default function ReportsPage() {
   const [from, setFrom] = React.useState("");
   const [to, setTo] = React.useState("");
   const [sort, setSort] = React.useState<{ key: string; dir: 1 | -1 } | null>(null);
-  const { data, error, loading } = useApi<{ report: Report; types: { key: string; label: string }[] }>(`/api/reports?type=${type}&from=${from}&to=${to}`);
+  const { data, error, loading } = useApi<{ report: Report; students: StudentReport | null; types: { key: string; label: string }[] }>(`/api/reports?type=${type}&from=${from}&to=${to}`);
   const r = data?.report;
   const rows = React.useMemo(() => {
     if (!r) return [];
@@ -132,8 +132,44 @@ export default function ReportsPage() {
               </table>
             </div>
           </Card>
+          {data?.students && <StudentsCard s={data.students} />}
         </>
       )}
     </div>
+  );
+}
+
+interface StudentReport {
+  counted: number;
+  withCollege: number;
+  awaiting: number;
+  escalated: number;
+  closed: number;
+  byCategory: { category: string; count: number }[];
+}
+
+function StudentsCard({ s }: { s: StudentReport }) {
+  return (
+    <Card>
+      <CardHeader title={`Student-portal complaints (${s.counted})`} sub="Counted once: complaints registered as AICTE cases are in the tables above, and one student counts at most 3 times per institution." />
+      <div className="grid grid-cols-2 gap-px px-5 pb-3 sm:grid-cols-4">
+        {[
+          ["With colleges", s.withCollege],
+          ["Awaiting the student's verdict", s.awaiting],
+          ["Escalated to AICTE", s.escalated],
+          ["Closed", s.closed],
+        ].map(([l, v]) => (
+          <div key={l} className="py-2">
+            <div className="text-[13.5px] text-slate-400">{l}</div>
+            <div className="num text-[24px] font-semibold text-white">{v}</div>
+          </div>
+        ))}
+      </div>
+      {s.byCategory.length > 0 && (
+        <div className="px-3 pb-4">
+          <BarsChart data={s.byCategory} x="category" horizontal height={Math.max(140, s.byCategory.length * 30 + 40)} series={[{ key: "count", label: "Student complaints", color: "#357D7A" }]} />
+        </div>
+      )}
+    </Card>
   );
 }

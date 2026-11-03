@@ -10,6 +10,8 @@ import { OverlapBridge } from "@/components/overlap-bridge";
 import { CaseDrawer, Fact } from "@/components/case-drawer";
 import { OverlapGraph } from "@/components/overlap-graph";
 import { RiskPanel } from "@/components/risk-panel";
+import { StudentComplaintList } from "@/components/student-list";
+import type { StudentSummary } from "@/lib/student";
 import type { RiskResult } from "@/lib/risk";
 import type { CaseView } from "@/lib/server";
 import type { CaseAction, Institution } from "@/lib/types";
@@ -27,6 +29,7 @@ interface Profile {
   byBureau: { bureau: string; open: number; disposed: number }[];
   byCategory: { category: string; count: number }[];
   timeline: (CaseAction & { caseId: string; caseBureau: string })[];
+  studentComplaints: StudentSummary[];
 }
 
 export default function InstitutionProfile({ params }: { params: { id: string } }) {
@@ -117,6 +120,8 @@ export default function InstitutionProfile({ params }: { params: { id: string } 
       </Card>
 
       <RiskPanel risk={data.risk} />
+
+      <StudentComplaintList items={data.studentComplaints} title={`Student-portal complaints (${data.studentComplaints.length})`} sub="Pseudonyms only, read-only. Complaints registered as AICTE cases also appear in the case list and are counted once." />
 
       {data.clusters.length > 0 && (
         <Card>
