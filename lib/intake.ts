@@ -25,6 +25,11 @@ export const DEMO_STUDENTS = [
   { apaarId: "APAAR-2046-1002", mobile: "9000000002", name: "Mohit Kandukuri", rollNo: "KTIT23EC017", collegeIndex: DEMO_COLLEGE_INDEX },
   { apaarId: "APAAR-2046-2001", mobile: "9000000003", name: "Lavanya Sekar", rollNo: "KPCE24ME102", collegeIndex: 5 },
 ];
+// Students 4 and 5 start with no complaints, so a demo complaint from them moves the risk index and heatmap counts
+export const FRESH_DEMO_STUDENTS = [
+  { apaarId: "APAAR-2046-1003", mobile: "9000000004", name: "Keerthana Bollineni", rollNo: "KTIT24ME023", collegeIndex: DEMO_COLLEGE_INDEX },
+  { apaarId: "APAAR-2046-1004", mobile: "9000000005", name: "Arjun Pothineni", rollNo: "KTIT24CV058", collegeIndex: DEMO_COLLEGE_INDEX },
+];
 
 export interface VoiceSample {
   id: string;

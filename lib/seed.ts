@@ -25,7 +25,7 @@ import { resolveInstitution } from "./resolve";
 import { collegeEmail, DEMO_PASSWORD, officerEmail } from "./demo-accounts";
 import { blindIndex, encryptField } from "./vault";
 import { auditHash } from "./store";
-import { DEMO_COLLEGE_INDEX, DEMO_STUDENTS, PULSE_TERM, VOICE_SAMPLES, categoryOf, mockEvidence, pseudonymFor, severityOf } from "./intake";
+import { DEMO_COLLEGE_INDEX, DEMO_STUDENTS, FRESH_DEMO_STUDENTS, PULSE_TERM, VOICE_SAMPLES, categoryOf, mockEvidence, pseudonymFor, severityOf } from "./intake";
 
 export const SCHEMA_VERSION = 5;
 
@@ -953,6 +953,11 @@ function seedStudentLayer(institutions: Institution[], settings: Settings, NOW: 
     accounts.push({ id: `COL-${inst.id}`, email: collegeEmail(inst.name), name: signals.find((s) => s.institutionId === inst.id)!.nodalOfficer, role: "college", passwordHash, officerId: `COL-${inst.id}`, region: inst.region, institutionId: inst.id });
   }
 
+  // added last and without the random generator, so every other generated record stays as it was
+  FRESH_DEMO_STUDENTS.forEach((d, i) => {
+    const id = `STU-D${DEMO_STUDENTS.length + i + 1}`;
+    students.push({ id, apaarId: d.apaarId, mobile: encryptField(d.mobile), mobileIndex: blindIndex(d.mobile), name: encryptField(d.name), rollNo: encryptField(d.rollNo), institutionId: institutions[d.collegeIndex].id, pseudonym: pseudonymFor(id), pulseTermsDone: [], pulseInvited: true, demo: true, consents: [] });
+  });
   return { students, studentComplaints: complaints, accounts, loginLocks: {}, otpRequests: [], deletionRequests: [], pulse, signals };
 }
 

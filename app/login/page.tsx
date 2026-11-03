@@ -6,9 +6,11 @@ import { Button, Card, Input, Label, Select, cn } from "@/components/ui";
 import { BotCheck } from "@/components/bot-check";
 import { BridgeMark } from "@/components/bridge-mark";
 import { DEMO_OFFICIALS, DEMO_PASSWORD } from "@/lib/demo-accounts";
-import { DEMO_STUDENTS } from "@/lib/intake";
+import { DEMO_STUDENTS, FRESH_DEMO_STUDENTS } from "@/lib/intake";
 import { ROLES } from "@/lib/roles";
 import type { RoleKey } from "@/lib/types";
+
+const STUDENTS = [...DEMO_STUDENTS, ...FRESH_DEMO_STUDENTS];
 
 const CARDS: { role: RoleKey; icon: React.ComponentType<{ className?: string }> }[] = [
   { role: "ca", icon: Landmark },
@@ -90,7 +92,7 @@ export default function LoginPage() {
         throw e;
       }
     });
-  const knownStudent = DEMO_STUDENTS.some((d) => d.apaarId === apaarId);
+  const knownStudent = STUDENTS.some((d) => d.apaarId === apaarId);
 
   return (
     <div className="mx-auto grid min-h-screen max-w-[1120px] items-start gap-5 px-4 py-8 lg:grid-cols-[1.25fr_1fr]">
@@ -224,7 +226,7 @@ export default function LoginPage() {
               </button>
             </li>
           ))}
-          {DEMO_STUDENTS.map((d, i) => (
+          {STUDENTS.map((d, i) => (
             <li key={d.apaarId}>
               <button
                 className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-white/[0.06]"
