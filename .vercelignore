@@ -4,3 +4,4 @@ data
 .next
 node_modules
 *.tsbuildinfo
+*.mp4

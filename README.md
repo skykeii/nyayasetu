@@ -7,6 +7,8 @@ AICTE complaints about technical institutions are handled separately by the Regu
 
 > This build covers **Priority 1** and **Priority 2** (voice intake, student portal, college desk, heatmap, risk index, smart routing and the extras). It is a demo on synthetic data, not a production system; see `/security` for what is implemented, mocked and planned.
 
+**Demo video:** [`nyayasetu-demo.mp4`](nyayasetu-demo.mp4) (stored with Git LFS; run `git lfs pull` after cloning). **Research behind the code:** [`REFERENCES.md`](REFERENCES.md).
+
 ## Run
 
 ```bash
